@@ -1,0 +1,16 @@
+package-as: TestGitExternals
+
+externals:
+  Libs/LibDataBroker-1.1: https://github.com/tekkub/libdatabroker-1-1
+  Libs/LibClassicSwingTimerAPI:
+    url: https://github.com/Ralgathor/LibClassicSwingTimerAPI
+    tag: v2.1.0
+  Libs/LibDeflate:
+    url: https://github.com/doadin/LibDeflate.git
+    branch: main
+  Libs/LibSpellRange-1.0:
+    url: https://github.com/ascott18/LibSpellRange-1.0
+    commit: 49da263
+  Libs/AceGUI-3.0-Search-EditBox:
+    url: https://github.com/michaelnpsp/AceGUI-3.0-Search-EditBox
+    commit: f4d79f3e3f720a5597e0887540085c1294c44dd5

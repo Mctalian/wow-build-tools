@@ -1,0 +1,6 @@
+package-as: TestIgnores
+
+ignore:
+  - Modules/Debug.lua
+  - ignore_me*
+  - "*.jpg"
