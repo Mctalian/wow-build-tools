@@ -1,0 +1,178 @@
+package external
+
+import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+)
+
+type GitExternal struct {
+	BaseVcs
+	metadata *ExternalEntry
+}
+
+func (gE *GitExternal) Checkout() error {
+	// Determine the cached repository path.
+	repoCachePath := gE.getRepoCachePath()
+	e := gE.metadata
+
+	// Instantiate the last-updated helper for the cache.
+	helper := NewLastUpdatedHelper(repoCachePath, ".lastUpdated", e.LogGroup)
+	lastUpdatedPath := helper.FilePath(e.Tag)
+
+	// If forced, delete any existing marker; otherwise, if the marker exists and is fresh, skip heavy operations.
+	if helper.Force {
+		if err := helper.Delete(lastUpdatedPath); err != nil {
+			return fmt.Errorf("GIT: failed to delete lastUpdated marker: %w", err)
+		}
+	} else {
+		if stale, err := helper.IsStale(lastUpdatedPath, 24*time.Hour); err != nil {
+			return err
+		} else if !stale {
+			e.LogGroup.Verbose("GIT: Cache is up-to-date for %s", e.DestPath)
+			return nil
+		}
+	}
+
+	// Clone or update the cached repository.
+	var repo *git.Repository
+	if _, err := os.Stat(repoCachePath); os.IsNotExist(err) {
+		e.LogGroup.Verbose("GIT: Cloning %s into cache: %s", e.URL, repoCachePath)
+		repo, err = git.PlainClone(repoCachePath, false, &git.CloneOptions{
+			URL:      e.URL,
+			Progress: os.Stdout,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to clone into cache %s: %w", e.URL, err)
+		}
+	} else {
+		repo, err = git.PlainOpen(repoCachePath)
+		if err != nil {
+			return fmt.Errorf("failed to open cache %s: %w", repoCachePath, err)
+		}
+		e.LogGroup.Verbose("GIT: Fetching latest changes in cache for %s", e.URL)
+		if err = repo.Fetch(&git.FetchOptions{
+			Prune: true,
+			Tags:  git.AllTags,
+		}); err != nil && err != git.NoErrAlreadyUpToDate {
+			return fmt.Errorf("failed to update cache: %w", err)
+		}
+	}
+
+	// Retrieve the worktree.
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Perform the checkout based on the type.
+	switch e.CheckoutType {
+	case "branch":
+		e.LogGroup.Verbose("GIT: Checking out branch %s", e.Tag)
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", e.Tag)),
+			Create: false,
+			Force:  true,
+		})
+		if err != nil {
+			return fmt.Errorf("git checkout branch failed: %w", err)
+		}
+	case "tag":
+		e.LogGroup.Verbose("GIT: Checking out tag %s", e.Tag)
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Branch: plumbing.ReferenceName(fmt.Sprintf("refs/tags/%s", e.Tag)),
+			Create: false,
+			Force:  true,
+		})
+		if err != nil {
+			return fmt.Errorf("git checkout tag failed: %w", err)
+		}
+	case "commit":
+		e.LogGroup.Verbose("GIT: Checking out commit %s", e.Tag)
+		commitHash := plumbing.NewHash(e.Tag)
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Hash:  commitHash,
+			Force: true,
+		})
+		if err != nil {
+			return fmt.Errorf("git checkout commit failed: %w", err)
+		}
+	default:
+		e.LogGroup.Verbose("GIT: Checking out default branch")
+		refs, err := repo.References()
+		if err != nil {
+			return fmt.Errorf("failed to get references: %w", err)
+		}
+		defaultBranch := ""
+		if err = refs.ForEach(func(ref *plumbing.Reference) error {
+			if ref.Type() == plumbing.SymbolicReference && ref.Name().String() == "HEAD" {
+				if defaultBranch != "" {
+					return fmt.Errorf("multiple default branches found")
+				}
+				defaultBranch = strings.TrimPrefix(ref.Target().String(), "refs/heads/")
+			}
+			return nil
+		}); err != nil {
+			return fmt.Errorf("failed to iterate references: %w", err)
+		}
+		if defaultBranch == "" {
+			return fmt.Errorf("failed to determine default branch")
+		}
+		err = worktree.Checkout(&git.CheckoutOptions{
+			Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", defaultBranch)),
+			Create: false,
+			Force:  true,
+		})
+		if err != nil {
+			return fmt.Errorf("git checkout %s failed: %w", defaultBranch, err)
+		}
+		e.Tag = defaultBranch
+	}
+
+	// Write the marker file now that the checkout is complete.
+	if err := helper.Write(lastUpdatedPath); err != nil {
+		return err
+	}
+
+	e.LogGroup.Debug("GIT: %s checkout successful: %s", e.DestPath, e.Tag)
+	return nil
+}
+
+// getRepoCachePath returns the cache path for a specific repository.
+func (e *GitExternal) getRepoCachePath() string {
+	return e.metadata.RepoCacheDir
+}
+
+func (e *GitExternal) GetURL() string {
+	return e.metadata.URL
+}
+
+func (e *GitExternal) GetTag() string {
+	return e.metadata.Tag
+}
+
+func (e *GitExternal) GetCheckoutType() string {
+	return e.metadata.CheckoutType
+}
+
+func (e *GitExternal) GetType() string {
+	return e.metadata.EType.ToString()
+}
+
+func (e *GitExternal) GetCurseSlug() string {
+	return e.metadata.CurseSlug
+}
+
+func NewGitExternal(e *ExternalEntry) (*GitExternal, error) {
+	if e.EType != Git {
+		return nil, fmt.Errorf("external entry is not a git type")
+	}
+
+	return &GitExternal{
+		metadata: e,
+	}, nil
+}
