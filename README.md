@@ -29,7 +29,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
     - [ ] `type`
     - [ ] `curse-slug`
     - [ ] `path`
-  - [x] `ignore`
+  - [x] `ignore` (./integration_tests/test_ignores)
   - [ ] `plain-copy` - needs to be a pattern, and it does not get token replacement
   - [ ] `move-folders`
   - [ ] `tools-used`
@@ -70,7 +70,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [ ] Single TOC and Multiple Game Types/Flavors
   - [ ] Multiple TOCs per Game Type/Flavor
   - [ ] Splitting a single TOC into multiple TOCs
-- [ ] Download external dependencies (at keast happy path)
+- [ ] Download external dependencies (at least happy path)
   - [x] Git Externals
   - [x] SVN Externals
   - [ ] Mercurial Externals

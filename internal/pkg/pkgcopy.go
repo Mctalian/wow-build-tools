@@ -120,7 +120,20 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 			if d.IsDir() && strings.Contains(ignore, "/*") {
 				pattern = strings.TrimSuffix(ignore, "/*")
 			}
-			matched, err := filepath.Match(pattern, d.Name())
+			matched, err := filepath.Match(pattern, relPath)
+			if err != nil {
+				return fmt.Errorf("error matching ignore pattern: %v", err)
+			}
+			if matched {
+				logGroup.Debug("⛔ Ignoring %s", path)
+				// If it's a directory, skip the whole subtree.
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+
+			matched, err = filepath.Match(pattern, d.Name())
 			if err != nil {
 				return fmt.Errorf("error matching ignore pattern: %v", err)
 			}

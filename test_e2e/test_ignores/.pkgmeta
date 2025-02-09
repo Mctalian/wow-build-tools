@@ -1,0 +1,6 @@
+package-as: Monkey
+
+ignore:
+  - Modules/Debug.lua
+  - ignore_me*
+  - "*.jpg"
