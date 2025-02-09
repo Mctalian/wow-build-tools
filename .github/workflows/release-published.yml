@@ -45,7 +45,7 @@ jobs:
           # Determine the file extension based on OS.
           ext=""
           if [ "${{ matrix.goos }}" = "windows" ]; then ext=".exe"; fi
-          binaryFile="build/${{ env.CMD }}${ext}"
+          binaryFile="build/${{ env.CMD }}_${{ matrix.goos }}_${{ matrix.goarch }}${ext}"
           zipFile="build/${{ env.CMD }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
           echo "Zipping ${binaryFile} to ${zipFile}"
           zip -j ${zipFile} ${binaryFile}
