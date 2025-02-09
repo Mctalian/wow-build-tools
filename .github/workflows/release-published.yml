@@ -31,8 +31,7 @@ jobs:
       - name: Replace version token in source
         run: |
           echo "Replacing version constant with ${VERSION}"
-          # Adjust the file path if your version constant is not in "version.go"
-          sed -i "s/const version = \"LOCAL\"/const version = \"${VERSION}\"/" ./path/to/version.go
+          sed -i "s/const version = \"LOCAL\"/const version = \"${VERSION}\"/" ./internal/update/updatebin.go
 
       - name: Build binary
         run: |
