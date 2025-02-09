@@ -45,14 +45,14 @@ jobs:
           # Determine the file extension based on OS.
           ext=""
           if [ "${{ matrix.goos }}" = "windows" ]; then ext=".exe"; fi
-          binaryFile="build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}${ext}"
-          zipFile="build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
+          binaryFile="build/${{ env.CMD }}_${{ matrix.goos }}_${{ matrix.goarch }}${ext}"
+          zipFile="build/${{ env.CMD }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
           echo "Zipping ${binaryFile} to ${zipFile}"
           zip -j ${zipFile} ${binaryFile}
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          tag: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           # The glob pattern matches the asset that follows your naming convention.
-          files: build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          files: build/${{ env.CMD }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
