@@ -46,7 +46,8 @@ func TestAddonProcessing(t *testing.T) {
 				assert.FileExists(t, filepath.Join(output, "Monkey", "Modules", "Suit", "Core.lua"))
 				assert.DirExists(t, filepath.Join(output, "Monkey", "Modules", "Hat"))
 				assert.FileExists(t, filepath.Join(output, "Monkey", "Modules", "Hat", "Core.lua"))
-			}},
+			},
+		},
 		// {"TestAddon2", "test_addon_2"},
 	}
 
