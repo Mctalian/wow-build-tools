@@ -14,10 +14,19 @@ import (
 const version = "LOCAL" // This will be replaced by the tag version in the binary
 const repo = "McTalian/wow-build-tools"
 
-func ConfirmAndSelfUpdate() {
-	v, err := semver.Parse(strings.TrimPrefix(version, "v"))
+func checkVersion() (semver.Version, error) {
+	trimmedVersion := strings.TrimPrefix(version, "v")
+	v, err := semver.Parse(trimmedVersion)
 	if err != nil {
-		logger.Info("Running in local mode. Skipping self-update.")
+		logger.Info("Running in local, alpha, or beta mode (%s). Skipping self-update.", trimmedVersion)
+		return semver.Version{}, err
+	}
+	return v, nil
+}
+
+func ConfirmAndSelfUpdate() {
+	v, err := checkVersion()
+	if err != nil {
 		return
 	}
 
@@ -57,12 +66,12 @@ func ConfirmAndSelfUpdate() {
 }
 
 func DoSelfUpdate() {
-	v, err := semver.Parse(version)
+	v, err := checkVersion()
 	if err != nil {
-		logger.Info("Running in local mode. Skipping self-update.")
 		return
 	}
 
+	logger.Info("Checking for newer versions that %s...", v.String())
 	latest, err := selfupdate.UpdateSelf(v, repo)
 	if err != nil {
 		logger.Error("Binary update failed: %v", err)
@@ -70,7 +79,7 @@ func DoSelfUpdate() {
 	}
 	if latest.Version.Equals(v) {
 		// latest version is the same as current version. It means current binary is up to date.
-		logger.Info("Current binary is the latest version %s", version)
+		logger.Info("Current binary is the latest version %s", v.String())
 	} else {
 		logger.Info("Successfully updated to version %s", latest.Version)
 		logger.Info("Release note:\n%s", latest.ReleaseNotes)
