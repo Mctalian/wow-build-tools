@@ -1,0 +1,59 @@
+name: Build and Release Binaries
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    permissions:
+      contents: write
+    env:
+      # Use the Git tag as the version (for example, "v1.2.3" or "v1.2.3-alpha.1")
+      VERSION: ${{ github.ref_name }}
+      # Set your binary name; adjust as needed.
+      CMD: wow-build-tools
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Replace version token in source
+        run: |
+          echo "Replacing version constant with ${VERSION}"
+          # Adjust the file path if your version constant is not in "version.go"
+          sed -i "s/const version = \"LOCAL\"/const version = \"${VERSION}\"/" ./path/to/version.go
+
+      - name: Build binary
+        run: |
+          mkdir -p build
+          ext=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then ext=".exe"; fi
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}${ext} .
+
+      - name: Zip binary
+        run: |
+          # Determine the file extension based on OS.
+          ext=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then ext=".exe"; fi
+          binaryFile="build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}${ext}"
+          zipFile="build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
+          echo "Zipping ${binaryFile} to ${zipFile}"
+          zip -j ${zipFile} ${binaryFile}
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag: ${{ github.ref_name }}
+          # The glob pattern matches the asset that follows your naming convention.
+          files: build/${CMD}_${{ matrix.goos }}_${{ matrix.goarch }}.zip

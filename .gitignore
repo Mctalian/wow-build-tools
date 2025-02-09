@@ -1,0 +1,6 @@
+.pkgmeta
+Libs/
+.release/
+dist/
+
+node_modules/
