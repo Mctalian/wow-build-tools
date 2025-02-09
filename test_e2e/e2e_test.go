@@ -24,31 +24,70 @@ func TestAddonProcessing(t *testing.T) {
 		assertions     func(t *testing.T, output string)
 	}{
 		{
-			"IgnoresTest",
+			"TestIgnores",
 			"test_ignores",
 			[]string{"-z"},
 			func(t *testing.T, output string) {
-				matches, err := filepath.Glob(filepath.Join(output, "Monkey", "*.zip"))
+				matches, err := filepath.Glob(filepath.Join(output, "TestIgnores", "*.zip"))
 				assert.NoError(t, err)
 				assert.Len(t, matches, 0, "Expected 0 zip files, got %d", len(matches))
-				assert.DirExists(t, filepath.Join(output, "Monkey"))
-				assert.FileExists(t, filepath.Join(output, "Monkey", "Monkey.toc"))
-				assert.FileExists(t, filepath.Join(output, "Monkey", "Core.lua"))
-				assert.FileExists(t, filepath.Join(output, "Monkey", "embed.xml"))
-				assert.NoFileExists(t, filepath.Join(output, "Monkey", "ignore_me.old"), "Ignored ignore_me.old file found")
-				assert.NoFileExists(t, filepath.Join(output, "Monkey", "ignore_me.new"), "Ignored ignore_me.new file found")
-				assert.NoFileExists(t, filepath.Join(output, "Monkey", "example.jpg"), "Ignored example.jpg file found")
-				assert.DirExists(t, filepath.Join(output, "Monkey", "Modules"))
-				assert.NoFileExists(t, filepath.Join(output, "Monkey", "Modules", "Debug.lua"), "Ignored Debug.lua file found")
-				assert.NoFileExists(t, filepath.Join(output, "Monkey", "Modules", "debug.jpg"), "Ignored debug.jpg file found")
-				assert.NoFileExists(t, filepath.Join(output, "Monkey", "Modules", "ignore_me.always"), "Ignored ignore_me.always file found")
-				assert.DirExists(t, filepath.Join(output, "Monkey", "Modules", "Suit"))
-				assert.FileExists(t, filepath.Join(output, "Monkey", "Modules", "Suit", "Core.lua"))
-				assert.DirExists(t, filepath.Join(output, "Monkey", "Modules", "Hat"))
-				assert.FileExists(t, filepath.Join(output, "Monkey", "Modules", "Hat", "Core.lua"))
+				assert.DirExists(t, filepath.Join(output, "TestIgnores"))
+				assert.FileExists(t, filepath.Join(output, "TestIgnores", "TestIgnores.toc"))
+				assert.FileExists(t, filepath.Join(output, "TestIgnores", "Core.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestIgnores", "embed.xml"))
+				assert.NoFileExists(t, filepath.Join(output, "TestIgnores", "ignore_me.old"), "Ignored ignore_me.old file found")
+				assert.NoFileExists(t, filepath.Join(output, "TestIgnores", "ignore_me.new"), "Ignored ignore_me.new file found")
+				assert.NoFileExists(t, filepath.Join(output, "TestIgnores", "example.jpg"), "Ignored example.jpg file found")
+				assert.DirExists(t, filepath.Join(output, "TestIgnores", "Modules"))
+				assert.NoFileExists(t, filepath.Join(output, "TestIgnores", "Modules", "Debug.lua"), "Ignored Debug.lua file found")
+				assert.NoFileExists(t, filepath.Join(output, "TestIgnores", "Modules", "debug.jpg"), "Ignored debug.jpg file found")
+				assert.NoFileExists(t, filepath.Join(output, "TestIgnores", "Modules", "ignore_me.always"), "Ignored ignore_me.always file found")
+				assert.DirExists(t, filepath.Join(output, "TestIgnores", "Modules", "Suit"))
+				assert.FileExists(t, filepath.Join(output, "TestIgnores", "Modules", "Suit", "Core.lua"))
+				assert.DirExists(t, filepath.Join(output, "TestIgnores", "Modules", "Hat"))
+				assert.FileExists(t, filepath.Join(output, "TestIgnores", "Modules", "Hat", "Core.lua"))
 			},
 		},
-		// {"TestAddon2", "test_addon_2"},
+		{
+			"TestSvnExternals",
+			"test_svn_externals",
+			[]string{"-z", "-E"},
+			func(t *testing.T, output string) {
+				assert.DirExists(t, filepath.Join(output, "TestSvnExternals"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "TestSvnExternals.toc"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Core.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "embed.xml"))
+				assert.DirExists(t, filepath.Join(output, "TestSvnExternals", "Libs"))
+				assert.DirExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "LibStub"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "LibStub", "LibStub.lua"))
+				assert.DirExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "CallbackHandler-1.0"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "CallbackHandler-1.0", "CallbackHandler-1.0.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "CallbackHandler-1.0", "CallbackHandler-1.0.xml"))
+				assert.DirExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "AceAddon-3.0"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "AceAddon-3.0", "AceAddon-3.0.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "AceAddon-3.0", "AceAddon-3.0.xml"))
+				assert.DirExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "AceBucket-3.0"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "AceBucket-3.0", "AceBucket-3.0.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestSvnExternals", "Libs", "AceBucket-3.0", "AceBucket-3.0.xml"))
+			},
+		},
+		{
+			"TestGitExternals",
+			"test_git_externals",
+			[]string{"-z", "-E"},
+			func(t *testing.T, output string) {
+				assert.DirExists(t, filepath.Join(output, "TestGitExternals"))
+				assert.DirExists(t, filepath.Join(output, "TestGitExternals", "Libs"))
+				assert.DirExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibClassicSwingTimerAPI"))
+				assert.FileExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibClassicSwingTimerAPI", "LibClassicSwingTimerAPI.lua"))
+				assert.DirExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibDataBroker-1.1"))
+				assert.FileExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibDataBroker-1.1", "LibDataBroker-1.1.lua"))
+				assert.DirExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibDeflate"))
+				assert.FileExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibDeflate", "LibDeflate.lua"))
+				assert.DirExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibSpellRange-1.0"))
+				assert.FileExists(t, filepath.Join(output, "TestGitExternals", "Libs", "LibSpellRange-1.0", "LibSpellRange-1.0.lua"))
+			},
+		},
 	}
 
 	for _, tt := range tests {

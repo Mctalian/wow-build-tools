@@ -1,0 +1,13 @@
+package-as: TestSvnExternals
+
+externals:
+  Libs/LibStub: https://repos.wowace.com/wow/ace3/trunk/LibStub
+  Libs/CallbackHandler-1.0:
+    url: https://repos.wowace.com/wow/ace3/trunk/CallbackHandler-1.0
+    tag: latest
+  Libs/AceAddon-3.0:
+    url: https://repos.wowace.com/wow/ace3/trunk/AceAddon-3.0
+    tag: Release-r1349
+  Libs/AceBucket-3.0:
+    url: https://repos.wowace.com/wow/ace3/trunk
+    path: AceBucket-3.0

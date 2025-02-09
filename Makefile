@@ -16,8 +16,9 @@ run: build
 	./$(OUTPUT_DIR)/$(BINARY_NAME)
 
 test:
-	go test -v ./... -cover -coverpkg=./... -coverprofile="./.coverage/cover.out"
-	go tool cover -html="./.coverage/cover.out" -o "./.coverage/report.html"
+	@go test -v ./... -cover -coverpkg=./... -coverprofile="./.coverage/cover.out"
+	@go tool cover -html="./.coverage/cover.out" -o "./.coverage/report.html"
+	@echo "Coverage report generated at ./.coverage/report.html"
 
 # Define the default target
 .PHONY: all

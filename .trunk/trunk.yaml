@@ -31,10 +31,6 @@ lint:
     - prettier@3.4.2
     - trufflehog@3.88.4
     - yamllint@1.35.1
-  ignore:
-    - linters: [ALL]
-      paths:
-        - "CHANGELOG.md" # This is auto-generated
 actions:
   enabled:
     - trunk-announce

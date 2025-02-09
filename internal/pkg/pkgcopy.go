@@ -84,6 +84,20 @@ func copyExternal(e *external.ExternalEntry, packageDir string) error {
 
 	destPath := filepath.Join(packageDir, e.DestPath)
 
+	if e.Path != "" && !strings.Contains(e.URL, e.Path) {
+		repoCachePath = filepath.Join(repoCachePath, e.Path)
+		e.LogGroup.Warn("%s: Path %s not found in URL %s - having a specific URL is generally more performant!", e.DestPath, e.Path, e.URL)
+		if strings.Contains(e.URL, "/trunk") {
+			e.LogGroup.Warn(`Example:
+	# .pkgmeta	
+	externals:
+	  %s: %s/%s
+`,
+				e.DestPath, e.URL, e.Path,
+			)
+		}
+	}
+
 	return copyFromCacheToPackageDir(destPath, repoCachePath, e.LogGroup)
 }
 

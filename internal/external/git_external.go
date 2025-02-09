@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 type GitExternal struct {
@@ -44,7 +45,7 @@ func (gE *GitExternal) Checkout() error {
 		e.LogGroup.Verbose("GIT: Cloning %s into cache: %s", e.URL, repoCachePath)
 		repo, err = git.PlainClone(repoCachePath, false, &git.CloneOptions{
 			URL:      e.URL,
-			Progress: os.Stdout,
+			Progress: nil,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to clone into cache %s: %w", e.URL, err)
@@ -93,13 +94,46 @@ func (gE *GitExternal) Checkout() error {
 		}
 	case "commit":
 		e.LogGroup.Verbose("GIT: Checking out commit %s", e.Tag)
-		commitHash := plumbing.NewHash(e.Tag)
-		err = worktree.Checkout(&git.CheckoutOptions{
-			Hash:  commitHash,
-			Force: true,
-		})
-		if err != nil {
-			return fmt.Errorf("git checkout commit failed: %w", err)
+		if plumbing.IsHash(e.Tag) {
+			commitHash := plumbing.NewHash(e.Tag)
+			err = worktree.Checkout(&git.CheckoutOptions{
+				Hash:  commitHash,
+				Force: true,
+			})
+			if err != nil {
+				return fmt.Errorf("git checkout of commit %s failed: %w", e.Tag, err)
+			}
+		} else if len(e.Tag) >= 7 {
+			cIter, err := repo.CommitObjects()
+			if err != nil {
+				return fmt.Errorf("failed to get commit objects with abbreviated hash %s: %w", e.Tag, err)
+			}
+			defer cIter.Close()
+
+			var ErrFoundCommit = fmt.Errorf("found commit")
+
+			var commit *object.Commit
+			if err = cIter.ForEach(func(c *object.Commit) error {
+				if strings.HasPrefix(c.Hash.String(), e.Tag) {
+					commit = c
+					return ErrFoundCommit
+				}
+				return nil
+			}); err != nil && err != ErrFoundCommit {
+				return fmt.Errorf("failed to iterate commit objects with abbreviated hash %s: %w", e.Tag, err)
+			}
+			if commit == nil {
+				return fmt.Errorf("commit not found with abbreviated hash %s", e.Tag)
+			}
+			err = worktree.Checkout(&git.CheckoutOptions{
+				Hash:  commit.Hash,
+				Force: true,
+			})
+			if err != nil {
+				return fmt.Errorf("git checkout of commit %s failed: %w", commit.Hash.String(), err)
+			}
+		} else {
+			return fmt.Errorf("invalid commit hash or abbreviated hash: %s", e.Tag)
 		}
 	default:
 		e.LogGroup.Verbose("GIT: Checking out default branch")
