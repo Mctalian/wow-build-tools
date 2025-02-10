@@ -73,7 +73,12 @@ func copyFromCacheToPackageDir(destPath string, repoCachePath string, logGroup *
 
 	repoCacheSubpath := filepath.Base(repoCachePath)
 	pathSegments := strings.Split(destPath, string(filepath.Separator))
-	subDir := filepath.Join(pathSegments[len(pathSegments)-2], pathSegments[len(pathSegments)-1])
+	var subDir string
+	if len(pathSegments) < 2 {
+		subDir = destPath
+	} else {
+		subDir = filepath.Join(pathSegments[len(pathSegments)-2], pathSegments[len(pathSegments)-1])
+	}
 	logGroup.Verbose("Copied %s to %s", repoCacheSubpath, subDir)
 
 	return nil

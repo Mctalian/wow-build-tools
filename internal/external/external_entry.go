@@ -2,7 +2,6 @@ package external
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -225,54 +224,4 @@ func (e *ExternalEntry) String(spaces int) string {
 		str += fmt.Sprintf("\n%sPath=%s", indent, e.Path)
 	}
 	return str
-}
-
-func (e *ExternalEntry) GetURL() string {
-	return e.URL
-}
-
-func (e *ExternalEntry) GetTag() string {
-	return e.Tag
-}
-
-func (e *ExternalEntry) GetCheckoutType() string {
-	return e.CheckoutType
-}
-
-func (e *ExternalEntry) GetType() string {
-	return e.EType.ToString()
-}
-
-func (e *ExternalEntry) GetCurseSlug() string {
-	return e.CurseSlug
-}
-
-func (e *ExternalEntry) GetPath() string {
-	return e.Path
-}
-
-func (e *ExternalEntry) RemoveHiddenEntries(path string) error {
-	// Remove the directories in the root that start with `.` (e.g. `.git`)
-	externalLogger.Verbose("Removing hidden entries in %s", path)
-	matches, err := filepath.Glob(filepath.Join(path, ".*"))
-	if err != nil {
-		return fmt.Errorf("failed to glob hidden directories: %w", err)
-	}
-
-	for _, match := range matches {
-		if match == "." || match == ".." {
-			continue
-		}
-
-		externalLogger.Verbose("Removing hidden entry: %s", match)
-		_, err := os.Stat(match)
-		if err != nil {
-			return fmt.Errorf("failed to stat hidden entry: %w", err)
-		}
-
-		if err := os.RemoveAll(match); err != nil {
-			return fmt.Errorf("failed to remove hidden entry: %w", err)
-		}
-	}
-	return nil
 }

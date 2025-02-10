@@ -1,7 +1,6 @@
 package test_e2e
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -142,7 +141,6 @@ func TestAddonProcessing(t *testing.T) {
 				t.Fatalf("Failed to get absolute path: %v", err)
 			}
 			if _, err := os.Stat(tempNewOutput); err == nil {
-				fmt.Println("Removing old output directory")
 				if err := os.RemoveAll(tempNewOutput); err != nil {
 					t.Fatalf("Failed to remove old output directory: %v", err)
 				}
