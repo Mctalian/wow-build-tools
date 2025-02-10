@@ -143,6 +143,11 @@ func (s *SvnExternal) getSvnTag() (*svnTagMeta, error) {
 
 	// Write a new marker file with the obtained tag.
 	lastUpdatePath = helper.FilePath(tag)
+	if _, err = os.Stat(helper.CacheDir); err != nil && os.IsNotExist(err) {
+		if err := os.MkdirAll(helper.CacheDir, os.ModePerm); err != nil {
+			return nil, fmt.Errorf("failed to create cache directory: %w", err)
+		}
+	}
 	if err := helper.Write(lastUpdatePath); err != nil {
 		return nil, err
 	}
@@ -175,7 +180,11 @@ func (s *SvnExternal) Checkout() error {
 			e.URL = tagMeta.TagUrl
 			e.Tag = tagMeta.Tag
 		}
-		checkoutURL = fmt.Sprintf("%s/%s", e.URL, e.Tag)
+		if e.Path == "" {
+			checkoutURL = fmt.Sprintf("%s/%s", e.URL, e.Tag)
+		} else {
+			checkoutURL = fmt.Sprintf("%s/%s/%s", e.URL, e.Tag, e.Path)
+		}
 	case "commit":
 		checkoutURL = e.URL
 	default:
@@ -195,7 +204,7 @@ func (s *SvnExternal) Checkout() error {
 	}
 
 	// If the cache directory does not exist, perform an initial checkout.
-	if _, err := os.Stat(repoCachePath); os.IsNotExist(err) {
+	if _, err := os.Stat(lastUpdatedPath); os.IsNotExist(err) {
 		e.LogGroup.Verbose("SVN: Checking out %s into cache: %s", checkoutURL, repoCachePath)
 		args := []string{"checkout"}
 		if e.CheckoutType == "commit" && e.Tag != "" {
