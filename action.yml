@@ -1,0 +1,31 @@
+name: WoW Build Tools
+description: Build and release your World of Warcraft addons with ease.
+branding:
+  icon: zap
+  color: blue
+
+inputs:
+  args:
+    description: Arguments to pass to `wow-build-tools build`.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      shell: bash
+      id: go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${GITHUB_ACTION_PATH}/go.mod
+
+    - name: Build binary
+      shell: bash
+      run: |
+        go build -o ./wow-build-tools ${GITHUB_ACTION_PATH}/.
+
+    - name: Run wow-build-tools
+      shell: bash
+      run: |
+        ./wow-build-tools build ${{ inputs.args }}
