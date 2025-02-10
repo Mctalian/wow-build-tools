@@ -18,8 +18,10 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/repo"
+	"github.com/McTalian/wow-build-tools/internal/secrets"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
+	"github.com/McTalian/wow-build-tools/internal/upload"
 	"github.com/McTalian/wow-build-tools/internal/zipper"
 )
 
@@ -38,7 +40,8 @@ var buildCmd = &cobra.Command{
 			logger.SetLogLevel(logger.INFO)
 		}
 
-		noLib := false
+		secrets.LoadSecrets()
+
 		classic := false
 		var templateTokens *tokens.NameTemplate
 		var err error
@@ -68,17 +71,29 @@ var buildCmd = &cobra.Command{
 			return
 		}
 
-		tocFiles, err := toc.FindTocFiles(topDir)
+		tocFilePaths, err := toc.FindTocFiles(topDir)
 		if err != nil {
 			logger.Error("TOC Error: %v", err)
 			return
 		}
 
-		logger.Verbose("TOC Files: %v", tocFiles)
+		logger.Verbose("TOC Files: %v", tocFilePaths)
 
-		projectName := toc.DetermineProjectName(tocFiles)
+		projectName := toc.DetermineProjectName(tocFilePaths)
 
 		logger.Info("🔨 Building %s...", projectName)
+
+		var tocFiles []*toc.Toc
+		for _, tocFilePath := range tocFilePaths {
+			t, err := toc.NewToc(tocFilePath)
+			if err != nil {
+				logger.Error("TOC Error: %v", err)
+				return
+			}
+			tocFiles = append(tocFiles, t)
+
+			logger.Verbose("%s, %s", t.Filepath, t.Flavor.ToString())
+		}
 
 		r, err := repo.NewRepo(topDir)
 		if err != nil {
@@ -158,11 +173,7 @@ var buildCmd = &cobra.Command{
 			tokens.BuildDateIso:     buildDateIso,
 			tokens.BuildDateInteger: buildDateInteger,
 		}
-		if noLib {
-			tokenMap[tokens.NoLib] = "nolib"
-		} else {
-			tokenMap[tokens.NoLib] = ""
-		}
+
 		if classic {
 			tokenMap[tokens.Classic] = "classic"
 		} else {
@@ -246,6 +257,8 @@ var buildCmd = &cobra.Command{
 					return
 				}
 			}
+
+			upload.UploadToCurse(f.ReleaseDir+"/"+zipFileName+".zip", tocFiles)
 		}
 
 		logger.TimingSummary()

@@ -1,5 +1,6 @@
 .coverage/
 .release/
 dist/
-
 node_modules/
+
+.env

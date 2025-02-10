@@ -7,6 +7,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.13.2
 	github.com/hashicorp/go-version v1.7.0
+	github.com/joho/godotenv v1.5.1
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0

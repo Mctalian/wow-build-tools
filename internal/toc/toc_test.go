@@ -7,7 +7,7 @@ import (
 func TestTocFileToGameFlavor(t *testing.T) {
 	tests := []struct {
 		suffix   string
-		expected GameFlavors
+		expected GameFlavor
 	}{
 		{"classic", ClassicEra},
 		{"vanilla", ClassicEra},
