@@ -6,8 +6,20 @@ on:
 permissions: {}
 
 jobs:
+  setup-go:
+    # Do it once, leverage cache for subsequent jobs.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
   build:
     runs-on: ubuntu-latest
+    needs: setup-go
     strategy:
       matrix:
         goos: [linux, darwin, windows]
