@@ -21,9 +21,12 @@ runs:
     - name: Build binary
       shell: bash
       run: |
-        go build -o ./wow-build-tools ${GITHUB_ACTION_PATH}/.
+        cd ${{ github.action_path }}
+        go build -o ${{ github.workspace }}/wow-build-tools
 
     - name: Run wow-build-tools
       shell: bash
       run: |
+        pwd
+        ls -la .
         ./wow-build-tools build ${{ inputs.args }}
