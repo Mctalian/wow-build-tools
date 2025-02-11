@@ -30,10 +30,15 @@ outputs:
 
 runs:
   using: composite
-  env:
-    wbt_action_path: ${{ github.action_path }}
-    wbt_action_ref: ${{ github.action_ref }}
   steps:
+    - name: Set Env
+      env:
+        tmp_action_path: ${{ github.action_path }}
+        tmp_action_ref: ${{ github.action_ref }}
+      run: |
+        echo "wbt_action_path=$tmp_action_path" >> $GITHUB_ENV
+        echo "wbt_action_ref=$tmp_action_ref" >> $GITHUB_ENV
+
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
