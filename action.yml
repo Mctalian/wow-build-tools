@@ -30,35 +30,35 @@ outputs:
 
 runs:
   using: composite
+  env:
+    wbt_action_path: ${{ github.action_path }}
+    wbt_action_ref: ${{ github.action_ref }}
   steps:
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ${{ github.action_path }}/go.mod
+        go-version-file: ${{ env.wbt_action_path }}/go.mod
         cache-dependency-path: |
-          ${{ github.action_path }}/go.sum
+          ${{ env.wbt_action_path }}/go.sum
 
     - name: Build binary
       shell: bash
       run: |
-        cd ${{ github.action_path }}
+        cd ${{ env.wbt_action_path }}
         go build -o ${{ github.workspace }}/wow-build-tools
 
     - name: Get action_ref
       id: get-action-ref
       shell: bash
-      env:
-        action_ref: ${{ github.action_ref }}
       run: |
-        echo "Action Ref: ${action_ref}"
-        echo "action-ref=${action_ref}" >> $GITHUB_OUTPUT
+        echo "Action Ref: ${{ env.wbt_action_ref }}"
 
     - name: Cache external dependencies
       if: ${{ inputs.no-cache != 'true' }}
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/.wow-build-tools
-        key: ${{ runner.os }}-wow-build-tools-${{ steps.get-action-ref.outputs.action-ref }}
+        key: ${{ runner.os }}-wow-build-tools-${{ env.wbt_action_ref }}
 
     - name: Run wow-build-tools
       id: wbt-build
