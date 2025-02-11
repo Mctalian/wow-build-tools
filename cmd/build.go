@@ -19,7 +19,6 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/repo"
-	"github.com/McTalian/wow-build-tools/internal/secrets"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
 	"github.com/McTalian/wow-build-tools/internal/upload"
@@ -40,8 +39,6 @@ var buildCmd = &cobra.Command{
 		} else {
 			logger.SetLogLevel(logger.INFO)
 		}
-
-		secrets.LoadSecrets()
 
 		classic := false
 		var templateTokens *tokens.NameTemplate
@@ -266,7 +263,15 @@ var buildCmd = &cobra.Command{
 				}
 			}
 
-			upload.UploadToCurse(f.ReleaseDir+"/"+zipFileName+".zip", tocFiles)
+			curseArgs := upload.UploadCurseArgs{
+				ZipPath:   zipFileName,
+				FileLabel: templateTokens.GetLabel(&tokenMap, false),
+				TocFiles:  tocFiles,
+			}
+			if err = upload.UploadToCurse(curseArgs); err != nil {
+				logger.Error("Curse Upload Error: %v", err)
+				return
+			}
 		}
 
 		logger.TimingSummary()

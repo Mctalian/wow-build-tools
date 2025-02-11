@@ -20,3 +20,7 @@ var WagoId string
 var GameVersion string
 var PkgmetaFile string
 var NameTemplate string
+
+var UploadInput string
+var UploadLabel string
+var UploadInterfaceVersions []int

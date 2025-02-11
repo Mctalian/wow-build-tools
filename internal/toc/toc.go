@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
 type Toc struct {
@@ -64,6 +66,24 @@ func (g GameFlavor) ToString() string {
 	default:
 		return "Mainline"
 	}
+}
+
+func (t *Toc) GetGameVersions() []string {
+	var gameVersions []string
+	for _, interfaceVersion := range t.Interface {
+		// Grab the right-most 2 digits for the patch version
+		patchVersion := interfaceVersion % 100
+		// Grab the middle 2 digits for the minor version
+		minorVersion := (interfaceVersion / 100) % 100
+		// Grab the left-most digits for the major version
+		majorVersion := interfaceVersion / 10000
+
+		logger.Warn("Interface: %d -> Major: %d, Minor: %d, Patch: %d", interfaceVersion, majorVersion, minorVersion, patchVersion)
+
+		gameVersions = append(gameVersions, fmt.Sprintf("%d.%d.%d", majorVersion, minorVersion, patchVersion))
+	}
+
+	return gameVersions
 }
 
 func TocFileToGameFlavor(noExt string) (flavor GameFlavor, suffix string) {
