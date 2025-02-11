@@ -47,9 +47,11 @@ runs:
     - name: Get action_ref
       id: get-action-ref
       shell: bash
+      env:
+        action_ref: ${{ github.action_ref }}
       run: |
-        echo "Action Ref: ${{ env.action_ref }}"
-        echo "action-ref=${{ env.action_ref }}" >> $GITHUB_OUTPUT
+        echo "Action Ref: ${action_ref}"
+        echo "action-ref=${action_ref}" >> $GITHUB_OUTPUT
 
     - name: Cache external dependencies
       if: ${{ inputs.no-cache != 'true' }}
