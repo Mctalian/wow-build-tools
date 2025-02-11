@@ -46,6 +46,7 @@ runs:
 
     - name: Get action_ref
       id: get-action-ref
+      shell: bash
       run: |
         echo "Action Ref: ${{ env.action_ref }}"
         echo "action-ref=${{ env.action_ref }}" >> $GITHUB_OUTPUT
