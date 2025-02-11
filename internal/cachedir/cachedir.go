@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/McTalian/wow-build-tools/internal/github"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
@@ -13,11 +14,17 @@ var cacheDir string
 // Get returns the global cache directory for external repositories.
 func Get() (string, error) {
 	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("failed to determine user home directory: %w", err)
+		var dir string
+		var err error
+		if github.IsGitHubAction() {
+			dir, err = github.GetRunnerTempDir()
+		} else {
+			dir, err = os.UserHomeDir()
 		}
-		cacheDir = filepath.Join(homeDir, ".wow-build-tools", ".cache", "externals")
+		if err != nil {
+			return "", fmt.Errorf("failed to determine location for cache directory: %w", err)
+		}
+		cacheDir = filepath.Join(dir, ".wow-build-tools", ".cache", "externals")
 	}
 	return cacheDir, nil
 }

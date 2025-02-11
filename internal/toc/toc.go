@@ -66,8 +66,7 @@ func (g GameFlavor) ToString() string {
 	}
 }
 
-func TocFileToGameFlavor(noExt string) GameFlavor {
-	var suffix string
+func TocFileToGameFlavor(noExt string) (flavor GameFlavor, suffix string) {
 	if strings.Contains(noExt, "-") {
 		postDash := strings.Split(noExt, "-")
 		if len(postDash) > 1 {
@@ -84,30 +83,32 @@ func TocFileToGameFlavor(noExt string) GameFlavor {
 
 	switch normalSuffix {
 	case "classic", "vanilla":
-		return ClassicEra
+		flavor = ClassicEra
 	case "tbc", "bcc":
-		return TbcClassic
+		flavor = TbcClassic
 	case "wrath", "wotlk":
-		return WotlkClassic
+		flavor = WotlkClassic
 	case "cata":
-		return CataClassic
+		flavor = CataClassic
 	case "mop":
-		return MopClassic // Just a guess
+		flavor = MopClassic // Just a guess
 	case "wod":
-		return WodClassic
+		flavor = WodClassic
 	case "legion":
-		return LegionClassic
+		flavor = LegionClassic
 	case "bfa":
-		return BfaClassic
+		flavor = BfaClassic
 	case "sl":
-		return SlClassic
+		flavor = SlClassic
 	case "df":
-		return DfClassic
+		flavor = DfClassic
 	case "", "mainline":
-		return Mainline
+		flavor = Mainline
 	default:
-		return Unknown
+		flavor = Unknown
 	}
+
+	return
 }
 
 func FindTocFiles(path string) ([]string, error) {
@@ -141,10 +142,10 @@ func DetermineProjectName(tocFiles []string) string {
 			break
 		}
 
-		flavor = TocFileToGameFlavor(noExt)
+		flavor, suffix := TocFileToGameFlavor(noExt)
 		if flavor != Unknown {
-			projectName = strings.ReplaceAll(noExt, "_"+flavor.ToString(), "")
-			projectName = strings.ReplaceAll(projectName, "-"+flavor.ToString(), "")
+			projectName = strings.ReplaceAll(noExt, "_"+suffix, "")
+			projectName = strings.ReplaceAll(projectName, "-"+suffix, "")
 			break
 		}
 
@@ -157,7 +158,7 @@ func parse(filePath, tocContents string) (*Toc, error) {
 	toc := &Toc{}
 	toc.Filepath = filePath
 	baseFilename := filepath.Base(filePath)
-	toc.Flavor = TocFileToGameFlavor(strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename)))
+	toc.Flavor, _ = TocFileToGameFlavor(strings.TrimSuffix(baseFilename, filepath.Ext(baseFilename)))
 	lines := strings.Split(tocContents, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)

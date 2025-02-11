@@ -5,10 +5,28 @@ branding:
   color: blue
 
 inputs:
+  no-cache:
+    description: Pass "true" if you don't want to leverage cache for external dependencies.
+    required: false
+    default: "false"
   args:
     description: Arguments to pass to `wow-build-tools build`.
     required: false
     default: ""
+
+outputs:
+  package-name:
+    description: The name of the package that was built.
+    value: ${{ steps.wbt-build.outputs.package-name }}
+  main-zip-path:
+    description: The path to the main zip file that was built.
+    value: ${{ steps.wbt-build.outputs.main-zip-path }}
+  nolib-zip-path:
+    description: The path to the nolib zip file that was built, if applicable.
+    value: ${{ steps.wbt-build.outputs.nolib-zip-path }}
+  project-version:
+    description: The determined version of the project.
+    value: ${{ steps.wbt-build.outputs.project-version }}
 
 runs:
   using: composite
@@ -24,7 +42,15 @@ runs:
         cd ${{ github.action_path }}
         go build -o ${{ github.workspace }}/wow-build-tools
 
+    - name: Cache external dependencies
+      if: ${{ inputs.no-cache != 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/.wow-build-tools
+        key: ${{ runner.os }}-wow-build-tools-${{ github.action_ref }}
+
     - name: Run wow-build-tools
+      id: wbt-build
       shell: bash
       run: |
         pwd

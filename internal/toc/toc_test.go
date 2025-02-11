@@ -9,26 +9,26 @@ func TestTocFileToGameFlavor(t *testing.T) {
 		suffix   string
 		expected GameFlavor
 	}{
-		{"classic", ClassicEra},
-		{"vanilla", ClassicEra},
-		{"tbc", TbcClassic},
-		{"bcc", TbcClassic},
-		{"wrath", WotlkClassic},
-		{"wotlk", WotlkClassic},
-		{"cata", CataClassic},
-		{"mop", MopClassic},
-		{"wod", WodClassic},
-		{"legion", LegionClassic},
-		{"bfa", BfaClassic},
-		{"sl", SlClassic},
-		{"df", DfClassic},
-		{"mainline", Mainline},
-		{"", Mainline},
-		{"unknown", Unknown},
+		{"TestAddon_Classic", ClassicEra},
+		{"TestAddon-Vanilla", ClassicEra},
+		{"TestAddon_TBC", TbcClassic},
+		{"TestAddon-Bcc", TbcClassic},
+		{"TestAddon_Wrath", WotlkClassic},
+		{"TestAddon_Wotlk", WotlkClassic},
+		{"TestAddon_Cata", CataClassic},
+		{"TestAddon_Mop", MopClassic},
+		{"TestAddon_Wod", WodClassic},
+		{"TestAddon_Legion", LegionClassic},
+		{"TestAddon_Bfa", BfaClassic},
+		{"TestAddon_Sl", SlClassic},
+		{"TestAddon_Df", DfClassic},
+		{"TestAddon_Mainline", Mainline},
+		{"TestAddon", Mainline},
+		{"TestAddon_NotReal", Unknown},
 	}
 
 	for _, test := range tests {
-		result := TocFileToGameFlavor(test.suffix)
+		result, _ := TocFileToGameFlavor(test.suffix)
 		if result != test.expected {
 			t.Errorf("For suffix %s, expected %d, but got %d", test.suffix, test.expected, result)
 		}

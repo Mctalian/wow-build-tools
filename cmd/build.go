@@ -14,6 +14,7 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/cachedir"
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/external"
+	"github.com/McTalian/wow-build-tools/internal/github"
 	"github.com/McTalian/wow-build-tools/internal/injector"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
@@ -173,6 +174,7 @@ var buildCmd = &cobra.Command{
 			tokens.BuildDateIso:     buildDateIso,
 			tokens.BuildDateInteger: buildDateInteger,
 		}
+		github.Output(string(tokens.PackageName), tokenMap[tokens.PackageName])
 
 		if classic {
 			tokenMap[tokens.Classic] = "classic"
@@ -206,6 +208,8 @@ var buildCmd = &cobra.Command{
 			}
 		}
 
+		github.Output(string(tokens.ProjectVersion), tokenMap[tokens.ProjectVersion])
+
 		isNoLib := f.CreateNoLib || pkgMeta.EnableNoLibCreation
 
 		if !f.SkipZip {
@@ -221,11 +225,13 @@ var buildCmd = &cobra.Command{
 			zipWGroup.Add(1)
 			go func() {
 				defer zipWGroup.Done()
-				err = z.ZipFiles(packageDir, f.ReleaseDir+"/"+zipFileName+".zip", []string{})
+				zipPath := f.ReleaseDir + "/" + zipFileName + ".zip"
+				err = z.ZipFiles(packageDir, zipPath, []string{})
 				if err != nil {
 					zipErrChan <- err
 					return
 				}
+				github.Output("main-zip-path", zipPath)
 			}()
 
 			if isNoLib && !templateTokens.HasNoLib {
@@ -238,11 +244,13 @@ var buildCmd = &cobra.Command{
 				zipWGroup.Add(1)
 				go func() {
 					defer zipWGroup.Done()
-					err = z.ZipFiles(packageDir, f.ReleaseDir+"/"+noLibFileName+".zip", dirsToExclude)
+					zipPath := f.ReleaseDir + "/" + noLibFileName + ".zip"
+					err = z.ZipFiles(packageDir, zipPath, dirsToExclude)
 					if err != nil {
 						zipErrChan <- err
 						return
 					}
+					github.Output("nolib-zip-path", zipPath)
 				}()
 			}
 
