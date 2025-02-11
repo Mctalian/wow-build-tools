@@ -44,12 +44,18 @@ runs:
         cd ${{ github.action_path }}
         go build -o ${{ github.workspace }}/wow-build-tools
 
+    - name: Get action_ref
+      id: get-action-ref
+      run: |
+        echo "Action Ref: ${{ env.action_ref }}"
+        echo "action-ref=${{ env.action_ref }}" >> $GITHUB_OUTPUT
+
     - name: Cache external dependencies
       if: ${{ inputs.no-cache != 'true' }}
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/.wow-build-tools
-        key: ${{ runner.os }}-wow-build-tools-${{ env.action_ref }}
+        key: ${{ runner.os }}-wow-build-tools-${{ steps.get-action-ref.outputs.action-ref }}
 
     - name: Run wow-build-tools
       id: wbt-build
