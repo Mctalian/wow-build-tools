@@ -43,9 +43,9 @@ runs:
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ${{ env.wbt_action_path }}/.wow-build-tools/go.mod
+        go-version-file: ${{ env.wbt_action_path }}/go.mod
         cache-dependency-path: |
-          ${{ env.wbt_action_path }}/.wow-build-tools/go.sum
+          ${{ env.wbt_action_path }}/go.sum
 
     - name: Subversion check
       id: svn-check
