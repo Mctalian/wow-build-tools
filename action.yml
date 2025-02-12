@@ -50,6 +50,11 @@ runs:
         cache-dependency-path: |
           ${{ github.workspace }}/.wow-build-tools/go.sum
 
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: subversion
+        version: ${{ runner.os }}-svn-${{ env.wbt_action_ref }}
+
     - name: Build binary
       shell: bash
       run: |
