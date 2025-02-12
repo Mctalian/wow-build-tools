@@ -40,9 +40,14 @@ var buildCmd = &cobra.Command{
 			logger.SetLogLevel(logger.INFO)
 		}
 
+		err := f.ValidateInputArgs()
+		if err != nil {
+			logger.Error("Error validating input arguments: %v", err)
+			return
+		}
+
 		classic := false
 		var templateTokens *tokens.NameTemplate
-		var err error
 		if f.NameTemplate == "help" {
 			logger.Info("%s", tokens.NameTemplateUsageInfo())
 			return
