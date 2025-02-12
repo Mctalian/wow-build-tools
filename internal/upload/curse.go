@@ -14,6 +14,7 @@ import (
 
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
+	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 )
 
@@ -75,6 +76,7 @@ type cursePayload struct {
 	DisplayName   string        `json:"displayName"`
 	ReleaseType   ReleaseType   `json:"releaseType"`
 	GameVersions  []int         `json:"gameVersions"`
+	Relations     Relations     `json:"relations"`
 }
 
 type curseUpload struct {
@@ -129,7 +131,38 @@ func (c *curseUpload) lookupCurseToken() (err error) {
 	return
 }
 
-func (c *curseUpload) preparePayload() (err error) {
+func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
+	projects := make([]ProjectRelationship, 0)
+	for _, embed := range pkgMeta.EmbeddedLibraries {
+		projects = append(projects, ProjectRelationship{
+			Slug: embed,
+			Type: EmbeddedLibrary,
+		})
+	}
+
+	for _, tool := range pkgMeta.ToolsUsed {
+		projects = append(projects, ProjectRelationship{
+			Slug: tool,
+			Type: Tool,
+		})
+	}
+
+	for _, reqDep := range pkgMeta.RequiredDependencies {
+		projects = append(projects, ProjectRelationship{
+			Slug: reqDep,
+			Type: RequiredDependency,
+		})
+	}
+
+	for _, optDep := range pkgMeta.OptionalDependencies {
+		projects = append(projects, ProjectRelationship{
+			Slug: optDep,
+			Type: OptionalDependency,
+		})
+	}
+
+	// TODO: Currently not possible to specify incompatible relationships
+
 	payload := cursePayload{
 		Changelog:     "Testing upload",
 		ChangelogType: textChangelog,
@@ -138,14 +171,18 @@ func (c *curseUpload) preparePayload() (err error) {
 		GameVersions:  c.gameVersions,
 	}
 
+	if len(projects) > 0 {
+		payload.Relations = Relations{
+			Projects: projects,
+		}
+	}
+
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
 
 	c.metadataPart = string(jsonPayload)
-
-	logger.Info("%s", c.metadataPart)
 
 	return
 }
@@ -168,8 +205,6 @@ func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 		return
 	}
 	defer resp.Body.Close()
-
-	logger.Info("Game versions response: %v", resp)
 
 	if resp.StatusCode != http.StatusOK {
 		logger.Error("Could not fetch game versions: %v", resp.Status)
@@ -197,8 +232,8 @@ func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 	}
 
 	if len(c.gameVersions) == 0 {
-		logger.Warn("Could not find any game versions from interface versions")
-		return
+		logger.Error("Could not find any game versions from interface version(s) in toc file(s)")
+		return fmt.Errorf("no game versions found")
 	}
 
 	if len(c.gameVersions) != len(gameVersions) {
@@ -227,6 +262,8 @@ func (c *curseUpload) upload() (err error) {
 	// Create a buffer and multipart writer for the request body
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
+
+	logger.Info("metadata: %s", c.metadataPart)
 
 	// Add metadata part as a form field
 	if err = writer.WriteField("metadata", c.metadataPart); err != nil {
@@ -333,10 +370,12 @@ type UploadCurseArgs struct {
 	TocFiles  []*toc.Toc
 	ZipPath   string
 	FileLabel string
+	PkgMeta   *pkg.PkgMeta
 }
 
 func UploadToCurse(args UploadCurseArgs) error {
 	tocFiles := args.TocFiles
+	pkgMeta := args.PkgMeta
 
 	curseId, err := getCurseId(tocFiles)
 	if err != nil {
@@ -377,7 +416,7 @@ func UploadToCurse(args UploadCurseArgs) error {
 		return err
 	}
 
-	if err := curseUpload.preparePayload(); err != nil {
+	if err := curseUpload.preparePayload(pkgMeta); err != nil {
 		return err
 	}
 

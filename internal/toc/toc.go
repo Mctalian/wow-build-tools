@@ -7,8 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
 type Toc struct {
@@ -77,8 +75,6 @@ func (t *Toc) GetGameVersions() []string {
 		minorVersion := (interfaceVersion / 100) % 100
 		// Grab the left-most digits for the major version
 		majorVersion := interfaceVersion / 10000
-
-		logger.Warn("Interface: %d -> Major: %d, Minor: %d, Patch: %d", interfaceVersion, majorVersion, minorVersion, patchVersion)
 
 		gameVersions = append(gameVersions, fmt.Sprintf("%d.%d.%d", majorVersion, minorVersion, patchVersion))
 	}

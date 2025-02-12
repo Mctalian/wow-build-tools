@@ -217,6 +217,7 @@ var buildCmd = &cobra.Command{
 			var zipWGroup sync.WaitGroup
 			zipErrChan := make(chan error, zipsToCreate)
 			zipFileName := templateTokens.GetFileName(&tokenMap, false)
+			zipFilePath := f.ReleaseDir + "/" + zipFileName + ".zip"
 			noLibFileName := templateTokens.GetFileName(&tokenMap, true)
 			z := zipper.NewZipper(packageDir)
 			zipWGroup.Add(1)
@@ -264,9 +265,10 @@ var buildCmd = &cobra.Command{
 			}
 
 			curseArgs := upload.UploadCurseArgs{
-				ZipPath:   zipFileName,
+				ZipPath:   zipFilePath,
 				FileLabel: templateTokens.GetLabel(&tokenMap, false),
 				TocFiles:  tocFiles,
+				PkgMeta:   pkgMeta,
 			}
 			if err = upload.UploadToCurse(curseArgs); err != nil {
 				logger.Error("Curse Upload Error: %v", err)

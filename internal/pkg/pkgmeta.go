@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -20,8 +21,11 @@ type PkgMeta struct {
 	Externals            map[string]external.ExternalEntry `yaml:"externals"`
 	MoveFolders          map[string]string                 `yaml:"move-folders"`
 	Ignore               []string                          `yaml:"ignore"`
-	RequiredDependencies []string                          `yaml:"required-dependencies"`
 	EnableNoLibCreation  bool                              `yaml:"enable-nolib-creation"`
+	RequiredDependencies []string                          `yaml:"required-dependencies"`
+	EmbeddedLibraries    []string                          `yaml:"embedded-libraries"`
+	OptionalDependencies []string                          `yaml:"optional-dependencies"`
+	ToolsUsed            []string                          `yaml:"tools-used"`
 }
 
 type PkgMetaFileNotFound struct{}
@@ -70,6 +74,8 @@ func (p *PkgMeta) FetchExternals(packageDir string) error {
 	var checkoutWg sync.WaitGroup
 	checkoutErrChan := make(chan error, len(p.Externals))
 
+	numOrigEmbeds := len(p.EmbeddedLibraries)
+	missingSlugEncountered := false
 	start := time.Now()
 	for path, entry := range p.Externals {
 		// Capture the current loop variables.
@@ -125,19 +131,45 @@ func (p *PkgMeta) FetchExternals(packageDir string) error {
 				checkoutErrChan <- fmt.Errorf("failed to copy external: %w", err)
 				return
 			}
+
+			if entry.CurseSlug != "" {
+				p.EmbeddedLibraries = append(p.EmbeddedLibraries, entry.CurseSlug)
+			} else if entry.CurseSlug == "" {
+				if numOrigEmbeds == 0 {
+					entry.LogGroup.Warn("No CurseSlug found for %s and you have no embedded-libraries specified in your pkgmeta file.", entry.DestPath)
+					entry.LogGroup.Warn("Please add the CurseSlug to the external entry or add it to the embedded-libraries list to support the hard work of the author(s).")
+				} else {
+					entry.LogGroup.Warn("No CurseSlug found for %s", entry.DestPath)
+					missingSlugEncountered = true
+				}
+			}
 		}(ext, currentEntry)
 	}
 
 	checkoutWg.Wait()
 	close(checkoutErrChan)
 
-	externalLogger.Timing("All External dependencies fetched in %s", time.Since(start))
-
 	// Collect errors
 	for err := range checkoutErrChan {
 		if err != nil {
 			return fmt.Errorf("error fetching externals: %v", err)
 		}
+	}
+
+	externalLogger.Timing("All External dependencies fetched in %s", time.Since(start))
+
+	if missingSlugEncountered && len(p.EmbeddedLibraries) < len(p.Externals) {
+		externalLogger.Warn("CurseSlugs could not be determined for one or more externals above and it may not be specified in your pkgmeta embedded-libraries.")
+		externalLogger.Warn("Please ensure all external libraries have a CurseSlug or add them to the embedded-libraries list to support the hard work of the author(s).")
+	}
+
+	var uniqueEmbeds = make(map[string]bool)
+	for _, embed := range p.EmbeddedLibraries {
+		uniqueEmbeds[embed] = true
+	}
+	p.EmbeddedLibraries = make([]string, 0, len(uniqueEmbeds))
+	for embed := range uniqueEmbeds {
+		p.EmbeddedLibraries = append(p.EmbeddedLibraries, embed)
 	}
 
 	return nil
@@ -167,6 +199,10 @@ func parsePkgMeta(filename string) (*PkgMeta, error) {
 	for path, entry := range pkgMeta.Externals {
 		entry.DestPath = path
 		pkgMeta.Externals[path] = entry
+	}
+
+	if !slices.Contains(pkgMeta.ToolsUsed, "wow-build-tools") {
+		pkgMeta.ToolsUsed = append(pkgMeta.ToolsUsed, "wow-build-tools")
 	}
 
 	return &pkgMeta, nil

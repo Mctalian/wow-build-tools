@@ -16,26 +16,26 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [ ] Git
   - [ ] SVN
   - [ ] Mercurial
-- [ ] Support storing secrets in a `.env` file
+- [x] Support storing secrets in a `.env` file
 - [ ] Parse a `.pkgmeta` file including support for the following fields:
   - [x] `package-as`
-  - [ ] `externals` in various forms:
+  - [x] `externals` in various forms:
     - [x] Backward-compatible for legacy URLs (e.g. `git.curseforge.com`, `svn.wowace.com`, etc.)
     - [x] "Bare" externals (e.g. `Libs/LibStub: https://repos.wowace.com/wow/ace3/trunk/LibStub`)
     - [x] `url`
-    - [ ] `tag`
-    - [ ] `branch`
-    - [ ] `commit`
-    - [ ] `type`
-    - [ ] `curse-slug`
-    - [ ] `path`
+    - [x] `tag`
+    - [x] `branch`
+    - [x] `commit`
+    - [x] `type`
+    - [x] `curse-slug`
+    - [x] `path`
   - [x] `ignore` (test_e2e/test_ignores)
   - [ ] `plain-copy` - needs to be a pattern, and it does not get token replacement
   - [ ] `move-folders`
-  - [ ] `tools-used`
-  - [ ] `required-dependencies`
-  - [ ] `optional-dependencies`
-  - [ ] `embedded-libraries`
+  - [x] `tools-used`
+  - [x] `required-dependencies`
+  - [x] `optional-dependencies`
+  - [x] `embedded-libraries`
   - [x] `enable-nolib-creation`
   - [ ] `enable-toc-creation`
   - [ ] `license-output`
@@ -59,9 +59,9 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `-z` Skip zip file creation
   - [x] `-t topdir` Specify the top directory of the repository
   - [x] `-r releasedir` Specify the directory to copy files to
-  - [ ] `-p curse-id` Specify the CurseForge project ID
-  - [ ] `-w wowi-id` Specify the WoWInterface project ID
-  - [ ] `-a wago-id` Specify the Wago.io project ID
+  - [x] `-p curse-id` Specify the CurseForge project ID
+  - [x] `-w wowi-id` Specify the WoWInterface project ID
+  - [x] `-a wago-id` Specify the Wago.io project ID
   - [ ] `-g game-version` Specify the game version for uploading
   - [x] `-m pkgmeta-file` Specify the pkgmeta file to use
   - [x] `-n "{template}"` Tokenized zip file and upload label names
