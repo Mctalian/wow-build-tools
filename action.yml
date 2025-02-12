@@ -39,21 +39,29 @@ runs:
       run: |
         echo "wbt_action_path=$tmp_action_path" >> $GITHUB_ENV
         echo "wbt_action_ref=$tmp_action_ref" >> $GITHUB_ENV
-        mkdir -p $GITHUB_WORKSPACE/.wow-build-tools
-        cp $tmp_action_path/go.mod $GITHUB_WORKSPACE/.wow-build-tools
-        cp $tmp_action_path/go.sum $GITHUB_WORKSPACE/.wow-build-tools
 
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ${{ github.workspace }}/.wow-build-tools/go.mod
+        go-version-file: ${{ env.wbt_action_path }}/.wow-build-tools/go.mod
         cache-dependency-path: |
-          ${{ github.workspace }}/.wow-build-tools/go.sum
+          ${{ env.wbt_action_path }}/.wow-build-tools/go.sum
+
+    - name: Subversion check
+      id: svn-check
+      run: |
+        if ! command -v svn &> /dev/null; then
+          echo "Subversion is not installed. Installing..."
+          echo "install-svn=1" >> $GITHUB_OUTPUT
+        else
+          echo "install-svn=0" >> $GITHUB_OUTPUT
+        fi
 
     - uses: awalsh128/cache-apt-pkgs-action@5902b33ae29014e6ca012c5d8025d4346556bd40
+      if: steps.svn-check.outputs.install-svn == '1'
       with:
         packages: subversion
-        version: ${{ runner.os }}-svn-${{ env.wbt_action_ref }}
+        version: ${{ runner.os }}-svn-${{ github.action_ref }}
 
     - name: Build binary
       shell: bash
