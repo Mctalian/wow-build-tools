@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -43,6 +44,7 @@ var buildCmd = &cobra.Command{
 		err := f.ValidateInputArgs()
 		if err != nil {
 			logger.Error("Error validating input arguments: %v", err)
+			os.Exit(1)
 			return
 		}
 
@@ -55,6 +57,7 @@ var buildCmd = &cobra.Command{
 			templateTokens, err = tokens.NewNameTemplate(f.NameTemplate)
 			if err != nil {
 				logger.Error("Error parsing name template: %v", err)
+				os.Exit(1)
 				return
 			}
 		}
@@ -71,12 +74,14 @@ var buildCmd = &cobra.Command{
 
 		if _, err := cachedir.Create(); err != nil {
 			logger.Error("Cache Error: %v", err)
+			os.Exit(1)
 			return
 		}
 
 		tocFilePaths, err := toc.FindTocFiles(topDir)
 		if err != nil {
 			logger.Error("TOC Error: %v", err)
+			os.Exit(1)
 			return
 		}
 
@@ -91,6 +96,7 @@ var buildCmd = &cobra.Command{
 			t, err := toc.NewToc(tocFilePath)
 			if err != nil {
 				logger.Error("TOC Error: %v", err)
+				os.Exit(1)
 				return
 			}
 			tocFiles = append(tocFiles, t)
@@ -101,6 +107,7 @@ var buildCmd = &cobra.Command{
 		r, err := repo.NewRepo(topDir)
 		if err != nil {
 			logger.Error("Repo Error: %v", err)
+			os.Exit(1)
 			return
 		}
 
@@ -114,6 +121,7 @@ var buildCmd = &cobra.Command{
 			vR, err = repo.NewGitRepo(r)
 			if err != nil {
 				logger.Error("GitRepo Error: %v", err)
+				os.Exit(1)
 				return
 			}
 		case external.Svn:
@@ -122,6 +130,7 @@ var buildCmd = &cobra.Command{
 			logger.Verbose("Mercurial repository detected")
 		default:
 			logger.Error("Unknown repository type")
+			os.Exit(1)
 			return
 		}
 		logger.Timing("Creating VcsRepo took %s", time.Since(preVr))
@@ -133,11 +142,13 @@ var buildCmd = &cobra.Command{
 		pkgMeta, err := pkg.Parse(&parseArgs)
 		if err != nil {
 			logger.Error("Pkgmeta Error: %v", err)
+			os.Exit(1)
 			return
 		}
 
 		if pkgMeta.PackageAs != "" && projectName != pkgMeta.PackageAs {
 			logger.Error("Project name (%s) from TOC filename(s) does not match `package-as` name in pkgmeta file (%s)", projectName, pkgMeta.PackageAs)
+			os.Exit(1)
 			return
 		}
 
@@ -156,6 +167,7 @@ var buildCmd = &cobra.Command{
 		logger.Debug("Package Directory: %s", packageDir)
 		if err != nil {
 			logger.Error("Error preparing package directory: %v", err)
+			os.Exit(1)
 			return
 		}
 
@@ -164,6 +176,7 @@ var buildCmd = &cobra.Command{
 			err = projCopy.CopyToPackageDir(copyLogGroup)
 			if err != nil {
 				logger.Error("Copy Error: %v", err)
+				os.Exit(1)
 				return
 			}
 		}
@@ -187,6 +200,7 @@ var buildCmd = &cobra.Command{
 		preGetInjectionValues := time.Now()
 		if err = vR.GetInjectionValues(&tokenMap); err != nil {
 			logger.Error("GetInjectionValues Error: %v", err)
+			os.Exit(1)
 			return
 		}
 		logger.Verbose("%s", tokenMap.String())
@@ -194,11 +208,13 @@ var buildCmd = &cobra.Command{
 		logger.Timing("Getting Injection Values took %s", time.Since(preGetInjectionValues))
 		if err != nil {
 			logger.Error("Injector Error: %v", err)
+			os.Exit(1)
 			return
 		}
 		err = i.Execute()
 		if err != nil {
 			logger.Error("Injector Execute Error: %v", err)
+			os.Exit(1)
 			return
 		}
 
@@ -206,6 +222,7 @@ var buildCmd = &cobra.Command{
 			err = pkgMeta.FetchExternals(packageDir)
 			if err != nil {
 				logger.Error("Fetch Externals Error: %v", err)
+				os.Exit(1)
 				return
 			}
 		}
@@ -265,6 +282,7 @@ var buildCmd = &cobra.Command{
 			for err := range zipErrChan {
 				if err != nil {
 					logger.Error("Zip Error: %v", err)
+					os.Exit(1)
 					return
 				}
 			}
@@ -277,6 +295,7 @@ var buildCmd = &cobra.Command{
 			}
 			if err = upload.UploadToCurse(curseArgs); err != nil {
 				logger.Error("Curse Upload Error: %v", err)
+				os.Exit(1)
 				return
 			}
 		}
