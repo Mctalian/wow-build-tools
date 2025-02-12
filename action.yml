@@ -39,25 +39,22 @@ runs:
       run: |
         echo "wbt_action_path=$tmp_action_path" >> $GITHUB_ENV
         echo "wbt_action_ref=$tmp_action_ref" >> $GITHUB_ENV
+        mkdir -p $GITHUB_WORKSPACE/.wow-build-tools
+        cp $tmp_action_path/go.mod $GITHUB_WORKSPACE/.wow-build-tools
+        cp $tmp_action_path/go.sum $GITHUB_WORKSPACE/.wow-build-tools
 
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ${{ env.wbt_action_path }}/go.mod
+        go-version-file: ${{ github.workspace }}/.wow-build-tools/go.mod
         cache-dependency-path: |
-          ${{ env.wbt_action_path }}/go.sum
+          ${{ github.workspace }}/.wow-build-tools/go.sum
 
     - name: Build binary
       shell: bash
       run: |
         cd ${{ env.wbt_action_path }}
         go build -o ${{ github.workspace }}/wow-build-tools
-
-    - name: Get action_ref
-      id: get-action-ref
-      shell: bash
-      run: |
-        echo "Action Ref: ${{ env.wbt_action_ref }}"
 
     - name: Cache external dependencies
       if: ${{ inputs.no-cache != 'true' }}
@@ -70,6 +67,4 @@ runs:
       id: wbt-build
       shell: bash
       run: |
-        pwd
-        ls -la .
         ./wow-build-tools build ${{ inputs.args }}
