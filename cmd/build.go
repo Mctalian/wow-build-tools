@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/McTalian/wow-build-tools/internal/cachedir"
+	"github.com/McTalian/wow-build-tools/internal/changelog"
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/external"
 	"github.com/McTalian/wow-build-tools/internal/github"
@@ -171,6 +172,13 @@ var buildCmd = &cobra.Command{
 			return
 		}
 
+		cl, err := changelog.NewChangelog(vR.(*repo.BaseVcsRepo), pkgMeta, projectName, packageDir)
+		if err != nil {
+			logger.Error("Changelog Error: %v", err)
+			os.Exit(1)
+			return
+		}
+
 		if !f.SkipCopy {
 			projCopy := pkg.NewPkgCopy(topDir, packageDir, pkgMeta.Ignore, vR)
 			err = projCopy.CopyToPackageDir(copyLogGroup)
@@ -292,9 +300,18 @@ var buildCmd = &cobra.Command{
 				FileLabel: templateTokens.GetLabel(&tokenMap, false),
 				TocFiles:  tocFiles,
 				PkgMeta:   pkgMeta,
+				Changelog: cl,
 			}
 			if err = upload.UploadToCurse(curseArgs); err != nil {
 				logger.Error("Curse Upload Error: %v", err)
+				os.Exit(1)
+				return
+			}
+		} else {
+			// Just in case we need to generate the changelog
+			_, err = cl.GetChangelog()
+			if err != nil {
+				logger.Error("Changelog Error: %v", err)
 				os.Exit(1)
 				return
 			}

@@ -6,7 +6,7 @@ import (
 
 type SvnRepo struct {
 	BaseVcsRepo
-	r *Repo
+	repo *Repo
 }
 
 func (sR *SvnRepo) IsIgnored(path string, isDir bool) bool {
@@ -18,7 +18,7 @@ func (sR *SvnRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 }
 
 func NewSvnRepo(r *Repo) (*SvnRepo, error) {
-	sR := SvnRepo{r: r}
+	sR := SvnRepo{repo: r}
 
 	return &sR, nil
 }

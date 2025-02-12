@@ -12,6 +12,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/McTalian/wow-build-tools/internal/changelog"
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
@@ -33,14 +34,6 @@ const (
 	wrath   gameVersionTypeId = 73713
 	cata    gameVersionTypeId = 77522
 	retail  gameVersionTypeId = 517
-)
-
-type changelogType string
-
-const (
-	textChangelog     changelogType = "text"
-	htmlChangelog     changelogType = "html"
-	markdownChangelog changelogType = "markdown"
 )
 
 type ReleaseType string
@@ -71,12 +64,12 @@ type Relations struct {
 }
 
 type cursePayload struct {
-	Changelog     string        `json:"changelog"`
-	ChangelogType changelogType `json:"changelogType"`
-	DisplayName   string        `json:"displayName"`
-	ReleaseType   ReleaseType   `json:"releaseType"`
-	GameVersions  []int         `json:"gameVersions"`
-	Relations     Relations     `json:"relations"`
+	Changelog     string               `json:"changelog"`
+	ChangelogType changelog.MarkupType `json:"changelogType"`
+	DisplayName   string               `json:"displayName"`
+	ReleaseType   ReleaseType          `json:"releaseType"`
+	GameVersions  []int                `json:"gameVersions"`
+	Relations     Relations            `json:"relations"`
 }
 
 type curseUpload struct {
@@ -165,7 +158,7 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 
 	payload := cursePayload{
 		Changelog:     "Testing upload",
-		ChangelogType: textChangelog,
+		ChangelogType: changelog.TextMT,
 		DisplayName:   c.displayName,
 		ReleaseType:   AlphaRelease,
 		GameVersions:  c.gameVersions,
@@ -371,6 +364,7 @@ type UploadCurseArgs struct {
 	ZipPath   string
 	FileLabel string
 	PkgMeta   *pkg.PkgMeta
+	Changelog *changelog.Changelog
 }
 
 func UploadToCurse(args UploadCurseArgs) error {

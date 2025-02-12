@@ -20,7 +20,7 @@ import (
 
 type GitRepo struct {
 	BaseVcsRepo
-	r              *Repo
+	repo           *Repo
 	gitRepo        *git.Repository
 	worktree       *git.Worktree
 	headRef        *plumbing.Reference
@@ -30,7 +30,7 @@ type GitRepo struct {
 
 func (gR *GitRepo) openRepo() error {
 	var err error
-	gR.gitRepo, err = git.PlainOpen(gR.r.GetTopDir())
+	gR.gitRepo, err = git.PlainOpen(gR.repo.GetTopDir())
 	if err != nil {
 		return fmt.Errorf("failed to open git repository: %w", err)
 	}
@@ -145,164 +145,72 @@ func (gR *GitRepo) getProjectRevision() (int, error) {
 	return count, nil
 }
 
-// GetProjectTag retrieves a tag associated with HEAD and provides both an “always” (fallback) and the most recent tag.
-// It returns two values: siTag (for the exact tag) and siTagAbbrev (for the abbreviated form).
-func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
-	refIter, err := gR.gitRepo.Tags()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get tag objects: %w", err)
-	}
-	defer refIter.Close()
-
-	matchingTags := make([]*plumbing.Reference, 0)
-	tagCount := 0
-	err = refIter.ForEach(func(t *plumbing.Reference) error {
-		tagCount++
-		if t.Hash() == gR.headRef.Hash() {
-			matchingTags = append(matchingTags, t)
+func (gR *GitRepo) sortReferences(references []*plumbing.Reference) {
+	slices.SortFunc(references, func(i, j *plumbing.Reference) int {
+		iCommit, err := gR.gitRepo.CommitObject(i.Hash())
+		if err != nil {
+			return 1
 		}
-		return nil
-	})
-	if err != nil {
-		return "", "", fmt.Errorf("failed to iterate tags: %w", err)
-	}
-
-	if tagCount == 0 {
-		// No tags found.
-		tag0 = gR.headRef.Hash().String()[:7]
-		tag7 = tag0
-		return
-	}
-
-	// If there is at least one tag that points to HEAD, use it.
-	if len(matchingTags) > 0 {
-		if len(matchingTags) == 1 {
-			tag7 = matchingTags[0].Name().Short()
-			logger.Verbose("Found tag %s", tag7)
-			tag0 = tag7
-			return tag7, tag0, nil
+		jCommit, err := gR.gitRepo.CommitObject(j.Hash())
+		if err != nil {
+			return -1
 		}
 
-		slices.SortFunc(matchingTags, func(i, j *plumbing.Reference) int {
-			iCommit, err := gR.gitRepo.CommitObject(i.Hash())
-			if err != nil {
-				return 1
-			}
-			jCommit, err := gR.gitRepo.CommitObject(j.Hash())
-			if err != nil {
+		if iCommit.Committer.When.Before(jCommit.Committer.When) {
+			return -1
+		}
+		if iCommit.Committer.When.After(jCommit.Committer.When) {
+			return 1
+		}
+
+		// If committer dates are equal, sort by tag values.
+		// Secondary sort: Compare tag names using version semantics.
+		// Remove the "v" prefix if present.
+		nameI := strings.TrimPrefix(i.Name().Short(), "v")
+		nameJ := strings.TrimPrefix(j.Name().Short(), "v")
+
+		// Attempt to parse the tag names as versions.
+		verI, errI := version.NewVersion(nameI)
+		verJ, errJ := version.NewVersion(nameJ)
+		if errI == nil && errJ == nil {
+			if verI.LessThan(verJ) {
 				return -1
 			}
-
-			if iCommit.Committer.When.Before(jCommit.Committer.When) {
-				return -1
-			}
-			if iCommit.Committer.When.After(jCommit.Committer.When) {
-				return 1
-			}
-
-			// If committer dates are equal, sort by tag values.
-			// Secondary sort: Compare tag names using version semantics.
-			// Remove the "v" prefix if present.
-			nameI := strings.TrimPrefix(i.Name().Short(), "v")
-			nameJ := strings.TrimPrefix(j.Name().Short(), "v")
-
-			// Attempt to parse the tag names as versions.
-			verI, errI := version.NewVersion(nameI)
-			verJ, errJ := version.NewVersion(nameJ)
-			if errI == nil && errJ == nil {
-				if verI.LessThan(verJ) {
-					return -1
-				}
-				if verJ.LessThan(verI) {
-					return 1
-				}
-				return 0
-			}
-
-			// Fallback: lexicographical order if version parsing fails.
-			if i.Name().Short() < j.Name().Short() {
-				return -1
-			}
-			if i.Name().Short() > j.Name().Short() {
-				return 1
-			}
-
-			iTag, err := object.GetTag(gR.gitRepo.Storer, i.Hash())
-			if err != nil {
-				return 1
-			}
-			jTag, err := object.GetTag(gR.gitRepo.Storer, j.Hash())
-			if err != nil {
-				return -1
-			}
-			// If committer dates are equal and the tag values are equal, sort by tagger date descending.
-			if iTag.Tagger.When.After(jTag.Tagger.When) {
-				return -1
-			}
-			if iTag.Tagger.When.Before(jTag.Tagger.When) {
+			if verJ.LessThan(verI) {
 				return 1
 			}
 			return 0
-		})
-
-		tag7 = matchingTags[0].Name().Short()
-		tag0 = tag7
-	}
-
-	iter, err := gR.gitRepo.Tags()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get tags: %w", err)
-	}
-	defer iter.Close()
-
-	type TagNameHash struct {
-		Name string
-		Hash plumbing.Hash
-	}
-
-	var githubRefName string
-	if githubRef := os.Getenv("GITHUB_REF"); strings.HasPrefix(githubRef, "refs/tags/") {
-		githubRefName = os.Getenv("GITHUB_REF_NAME")
-	}
-
-	ErrFoundGHTagRef := fmt.Errorf("found GitHub tag ref")
-
-	tagNameHashes := make([]TagNameHash, 0)
-	if err = iter.ForEach(func(ref *plumbing.Reference) error {
-		if ref.Type() != plumbing.HashReference {
-			// logger.Verbose("Skipping non-hash reference %s", ref.Name())
-			return nil
 		}
 
-		tagName := ref.Name().Short()
-		if tagName == "" {
-			// logger.Verbose("Skipping empty tag name")
-			return nil
+		// Fallback: lexicographical order if version parsing fails.
+		if i.Name().Short() < j.Name().Short() {
+			return -1
+		}
+		if i.Name().Short() > j.Name().Short() {
+			return 1
 		}
 
-		if ref.Name() == plumbing.ReferenceName(githubRefName) {
-			tag7 = tagName
-			tag0 = tagName
-			return ErrFoundGHTagRef
+		iTag, err := object.GetTag(gR.gitRepo.Storer, i.Hash())
+		if err != nil {
+			return 1
 		}
-
-		if strings.Contains(tagName, "alpha") || strings.Contains(tagName, "beta") {
-			// logger.Verbose("Skipping alpha or beta tag %s", tagName)
-			return nil
+		jTag, err := object.GetTag(gR.gitRepo.Storer, j.Hash())
+		if err != nil {
+			return -1
 		}
-
-		tag7 = tagName
-		tagNameHashes = append(tagNameHashes, TagNameHash{Name: tagName, Hash: ref.Hash()})
-		return nil
-	}); err != nil {
-		if err != ErrFoundGHTagRef {
-			return "", "", fmt.Errorf("failed to iterate tags: %w", err)
-		} else {
-			return tag7, tag0, nil
+		// If committer dates are equal and the tag values are equal, sort by tagger date descending.
+		if iTag.Tagger.When.After(jTag.Tagger.When) {
+			return -1
 		}
-	}
+		if iTag.Tagger.When.Before(jTag.Tagger.When) {
+			return 1
+		}
+		return 0
+	})
+}
 
-	slices.SortFunc(tagNameHashes, func(e1, e2 TagNameHash) int {
+func sortTagNameHashes(tagNameHashes []tagNameHash) {
+	slices.SortFunc(tagNameHashes, func(e1, e2 tagNameHash) int {
 		tag1 := e1.Name
 		tag2 := e2.Name
 		tag1 = strings.TrimPrefix(tag1, "v")
@@ -333,8 +241,103 @@ func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
 
 		return 0
 	})
+}
 
-	var latestTag TagNameHash
+type tagNameHash struct {
+	Name string
+	Hash plumbing.Hash
+}
+
+func newTagNameHash(name string, hash plumbing.Hash) tagNameHash {
+	return tagNameHash{Name: name, Hash: hash}
+}
+
+// GetProjectTag retrieves a tag associated with HEAD and provides both an “always” (fallback) and the most recent tag.
+// It returns two values: siTag (for the exact tag) and siTagAbbrev (for the abbreviated form).
+func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
+	var githubRefName, githubTag7, githubTag0 string
+	if githubRef := os.Getenv("GITHUB_REF"); strings.HasPrefix(githubRef, "refs/tags/") {
+		logger.Warn("Detected GitHub Run")
+		githubRefName = os.Getenv("GITHUB_REF_NAME")
+	}
+
+	refIter, err := gR.gitRepo.Tags()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get tag objects: %w", err)
+	}
+	defer refIter.Close()
+
+	matchingTags := make([]*plumbing.Reference, 0)
+	tagCount := 0
+	tagNameHashes := make([]tagNameHash, 0)
+	err = refIter.ForEach(func(t *plumbing.Reference) error {
+		tagCount++
+		if t.Hash() == gR.headRef.Hash() {
+			matchingTags = append(matchingTags, t)
+		}
+
+		if t.Type() != plumbing.HashReference {
+			// logger.Verbose("Skipping non-hash reference %s", ref.Name())
+			return nil
+		}
+
+		tagName := t.Name().Short()
+		if tagName == "" {
+			// logger.Verbose("Skipping empty tag name")
+			return nil
+		}
+
+		if t.Name().Short() == plumbing.ReferenceName(githubRefName).String() {
+			githubTag7 = tagName
+			githubTag0 = tagName
+		}
+
+		if strings.Contains(tagName, "alpha") || strings.Contains(tagName, "beta") {
+			// logger.Verbose("Skipping alpha or beta tag %s", tagName)
+			return nil
+		}
+
+		tag7 = tagName
+		tagNameHashes = append(tagNameHashes, newTagNameHash(tagName, t.Hash()))
+		return nil
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to iterate tags: %w", err)
+	}
+
+	if tagCount == 0 {
+		// No tags found.
+		tag0 = gR.headRef.Hash().String()[:7]
+		tag7 = tag0
+		return
+	}
+
+	sortTagNameHashes(tagNameHashes)
+
+	if githubTag7 != "" || len(matchingTags) > 0 {
+		if githubTag7 != "" {
+			tag7 = githubTag7
+			tag0 = githubTag0
+		} else if len(matchingTags) == 1 {
+			tag7 = matchingTags[0].Name().Short()
+			tag0 = tag7
+		} else {
+			gR.sortReferences(matchingTags)
+			tag7 = matchingTags[0].Name().Short()
+			tag0 = tag7
+		}
+
+		matchingTagHashIndex := slices.IndexFunc(tagNameHashes, func(e tagNameHash) bool {
+			return e.Name == tag7
+		})
+		if matchingTagHashIndex != -1 && matchingTagHashIndex < len(tagNameHashes)-1 {
+			gR.PreviousVersion = tagNameHashes[matchingTagHashIndex+1].Name
+		}
+
+		return tag7, tag0, nil
+	}
+
+	var latestTag tagNameHash
 	if len(tagNameHashes) > 0 {
 		latestTag = tagNameHashes[0]
 	}
@@ -363,8 +366,13 @@ func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
 
 	tag7 = fmt.Sprintf("%s-%d-g%s", latestTag.Name, commitCount, gR.headRef.Hash().String()[:7])
 	tag0 = latestTag.Name
+	gR.PreviousVersion = latestTag.Name
 
 	return tag7, tag0, nil
+}
+
+func (gR *GitRepo) GetChangelogFromCommits() (string, error) {
+	return "", nil
 }
 
 func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
@@ -396,11 +404,16 @@ func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	}
 	stm.Add(tokens.ProjectRevision, strconv.Itoa(projectRevision))
 
-	tag7, _, err := gR.getProjectTag()
+	tag7, tag0, err := gR.getProjectTag()
 	if err != nil {
 		return err
 	}
 	stm.Add(tokens.ProjectVersion, tag7)
+	if tag7 == tag0 {
+		gR.CurrentTag = tag0
+	}
+
+	logger.Warn("Previous version: %s", gR.PreviousVersion)
 
 	return nil
 }
@@ -458,7 +471,7 @@ func (gR *GitRepo) GetFileInjectionValues(filePath string) (*tokens.SimpleTokenM
 }
 
 func NewGitRepo(r *Repo) (*GitRepo, error) {
-	gR := GitRepo{r: r}
+	gR := GitRepo{repo: r}
 	if err := gR.openRepo(); err != nil {
 		return nil, err
 	}

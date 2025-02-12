@@ -15,6 +15,11 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
+type PkgMetaManualChangelog struct {
+	Filename   string `yaml:"filename"`
+	MarkupType string `yaml:"markup-type"`
+}
+
 // PkgMeta represents the structure of the .pkgmeta file
 type PkgMeta struct {
 	PackageAs            string                            `yaml:"package-as"`
@@ -26,6 +31,8 @@ type PkgMeta struct {
 	EmbeddedLibraries    []string                          `yaml:"embedded-libraries"`
 	OptionalDependencies []string                          `yaml:"optional-dependencies"`
 	ToolsUsed            []string                          `yaml:"tools-used"`
+	ManualChangelog      PkgMetaManualChangelog            `yaml:"manual-changelog"`
+	ChangelogTitle       string                            `yaml:"changelog-title"`
 }
 
 type PkgMetaFileNotFound struct{}

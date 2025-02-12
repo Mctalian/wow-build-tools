@@ -14,18 +14,26 @@ type VcsRepo interface {
 	IsIgnored(path string, isDir bool) bool
 	GetInjectionValues(stm *tokens.SimpleTokenMap) error
 	GetFileInjectionValues(filePath string) (*tokens.SimpleTokenMap, error)
+	GetTopDir() string
 }
 
 type BaseVcsRepo struct {
 	VcsRepo
+	repo            *Repo
+	CurrentTag      string
+	PreviousVersion string
 }
 
 func (bV *BaseVcsRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	return nil
 }
 
-func (uR *BaseVcsRepo) IsIgnored(path string, isDir bool) bool {
+func (bV *BaseVcsRepo) IsIgnored(path string, isDir bool) bool {
 	return false
+}
+
+func (bV *BaseVcsRepo) GetTopDir() string {
+	return bV.repo.GetTopDir()
 }
 
 type Repo struct {
