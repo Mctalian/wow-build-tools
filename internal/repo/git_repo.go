@@ -20,12 +20,38 @@ import (
 
 type GitRepo struct {
 	BaseVcsRepo
-	repo           *Repo
-	gitRepo        *git.Repository
-	worktree       *git.Worktree
-	headRef        *plumbing.Reference
-	commit         *object.Commit
-	ignorePatterns []gitignore.Pattern
+	repo                *Repo
+	gitRepo             *git.Repository
+	worktree            *git.Worktree
+	headRef             *plumbing.Reference
+	commit              *object.Commit
+	ignorePatterns      []gitignore.Pattern
+	originURL           string
+	isGitHubUrl         bool
+	gitHubUrl           string
+	gitHubSlug          string
+	projectTimestamp    int64
+	projectHash         string
+	previousVersionHash string
+}
+
+func (gR *GitRepo) parseGitHubURL() {
+	gitHubUrl := strings.TrimSuffix(strings.TrimSuffix(gR.originURL, ".git"), "/")
+	segments := strings.Split(gitHubUrl, "github.com")
+	if len(segments) == 2 {
+		httpify := strings.NewReplacer("git@", "https://", "github.com:", "github.com/")
+		gitHubUrl = httpify.Replace(gitHubUrl)
+		gR.gitHubUrl = gitHubUrl
+		slug := strings.TrimPrefix(strings.TrimPrefix(segments[1], "/"), ":")
+		slugSegments := strings.Split(slug, "/")
+		if len(slugSegments) == 2 {
+			gR.gitHubSlug = slug
+		} else {
+			logger.Warn("Invalid GitHub slug: %s", slug)
+		}
+	} else {
+		logger.Warn("Invalid GitHub URL: %s", gitHubUrl)
+	}
 }
 
 func (gR *GitRepo) openRepo() error {
@@ -33,6 +59,17 @@ func (gR *GitRepo) openRepo() error {
 	gR.gitRepo, err = git.PlainOpen(gR.repo.GetTopDir())
 	if err != nil {
 		return fmt.Errorf("failed to open git repository: %w", err)
+	}
+
+	originRemote, err := gR.gitRepo.Remote("origin")
+	if err != nil {
+		return fmt.Errorf("failed to get origin remote: %w", err)
+	}
+
+	gR.originURL = originRemote.Config().URLs[0]
+	gR.isGitHubUrl = strings.Contains(gR.originURL, "github.com")
+	if gR.isGitHubUrl {
+		gR.parseGitHubURL()
 	}
 
 	gR.worktree, err = gR.gitRepo.Worktree()
@@ -332,6 +369,7 @@ func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
 		})
 		if matchingTagHashIndex != -1 && matchingTagHashIndex < len(tagNameHashes)-1 {
 			gR.PreviousVersion = tagNameHashes[matchingTagHashIndex+1].Name
+			gR.previousVersionHash = tagNameHashes[matchingTagHashIndex+1].Hash.String()
 		}
 
 		return tag7, tag0, nil
@@ -367,12 +405,83 @@ func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
 	tag7 = fmt.Sprintf("%s-%d-g%s", latestTag.Name, commitCount, gR.headRef.Hash().String()[:7])
 	tag0 = latestTag.Name
 	gR.PreviousVersion = latestTag.Name
+	gR.previousVersionHash = latestTag.Hash.String()
 
 	return tag7, tag0, nil
 }
 
-func (gR *GitRepo) GetChangelogFromCommits() (string, error) {
-	return "", nil
+func (gR *GitRepo) buildChangelogHeader(projectName string) string {
+	var header strings.Builder
+	header.WriteString(fmt.Sprintf("# %s\n\n", projectName))
+
+	var versionLink, changeLink string
+	previousReleasesLink := fmt.Sprintf("[Previous Releases](%s/releases)", gR.gitHubUrl)
+	if gR.gitHubUrl == "" {
+		versionLink = gR.ProjectVersion
+		changeLink = ""
+		previousReleasesLink = ""
+	} else if gR.PreviousVersion != "" && gR.CurrentTag != "" {
+		versionLink = fmt.Sprintf("[%s](%s/tree/%s)", gR.ProjectVersion, gR.gitHubUrl, gR.CurrentTag)
+		changeLink = fmt.Sprintf("[Full Changelog](%s/compare/%s...%s)", gR.gitHubUrl, gR.PreviousVersion, gR.CurrentTag)
+	} else if gR.PreviousVersion != "" && gR.CurrentTag == "" {
+		versionLink = fmt.Sprintf("[%s](%s/tree/%s)", gR.ProjectVersion, gR.gitHubUrl, gR.projectHash)
+		changeLink = fmt.Sprintf("[Full Changelog](%s/compare/%s...%s)", gR.gitHubUrl, gR.PreviousVersion, gR.projectHash)
+	} else if gR.PreviousVersion == "" && gR.CurrentTag != "" {
+		versionLink = fmt.Sprintf("[%s](%s/tree/%s)", gR.ProjectVersion, gR.gitHubUrl, gR.CurrentTag)
+		changeLink = fmt.Sprintf("[Full Changelog](%s/commits/%s)", gR.gitHubUrl, gR.CurrentTag)
+	} else {
+		versionLink = fmt.Sprintf("[%s](%s/tree/%s)", gR.ProjectVersion, gR.gitHubUrl, gR.projectHash)
+		changeLink = fmt.Sprintf("[Full Changelog](%s/commits/%s)", gR.gitHubUrl, gR.projectHash)
+	}
+	t := time.Unix(gR.projectTimestamp, 0).UTC()
+	changelogDate := t.Format("2006-01-02")
+	header.WriteString(fmt.Sprintf("## %s (%s)\n", versionLink, changelogDate))
+	header.WriteString(fmt.Sprintf("%s %s\n\n", changeLink, previousReleasesLink))
+
+	return header.String()
+}
+
+func (gR *GitRepo) GetChangelog(projectName string) (string, error) {
+	commitIter, err := gR.gitRepo.Log(&git.LogOptions{
+		From:  gR.headRef.Hash(),
+		Order: git.LogOrderCommitterTime,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to get commit log: %w", err)
+	}
+
+	ErrFoundPrevVersion := fmt.Errorf("found previous version")
+	var changelog strings.Builder
+	changelog.WriteString(gR.buildChangelogHeader(projectName))
+	err = commitIter.ForEach(func(c *object.Commit) error {
+		if c.Hash.String() == gR.previousVersionHash {
+			return ErrFoundPrevVersion
+		}
+		if strings.TrimSpace(c.Message) == "" {
+			return nil
+		}
+
+		if strings.Contains(c.Message, "git-svn-id:") {
+			return nil
+		}
+
+		if strings.Contains(c.Message, "This reverts commit") {
+			return nil
+		}
+
+		normalizedMessage := strings.TrimSpace(c.Message)
+		normalizedMessage = strings.ReplaceAll(normalizedMessage, "_", "\\_")
+		normalizedMessage = strings.ReplaceAll(normalizedMessage, "[ci skip]", "")
+		normalizedMessage = strings.ReplaceAll(normalizedMessage, "[skip ci]", "")
+
+		changelog.WriteString(fmt.Sprintf("- %s  \n", normalizedMessage))
+		return nil
+	})
+	if err != nil && err != ErrFoundPrevVersion {
+		return "", fmt.Errorf("failed to iterate commits: %w", err)
+	}
+
+	return changelog.String(), nil
 }
 
 func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
@@ -380,6 +489,7 @@ func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	if err != nil {
 		return err
 	}
+	gR.projectHash = projectHash
 	stm.Add(tokens.ProjectHash, projectHash)
 	stm.Add(tokens.ProjectAbbrevHash, projectHash[:7])
 
@@ -393,6 +503,7 @@ func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	if err != nil {
 		return err
 	}
+	gR.projectTimestamp = projectTimestamp
 	stm.Add(tokens.ProjectTimestamp, strconv.FormatInt(projectTimestamp, 10))
 	t := time.Unix(projectTimestamp, 0).UTC()
 	stm.Add(tokens.ProjectDateIso, t.Format("2006-01-02T15:04:05Z"))
@@ -412,6 +523,7 @@ func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	if tag7 == tag0 {
 		gR.CurrentTag = tag0
 	}
+	gR.ProjectVersion = tag7
 
 	logger.Warn("Previous version: %s", gR.PreviousVersion)
 
@@ -472,6 +584,7 @@ func (gR *GitRepo) GetFileInjectionValues(filePath string) (*tokens.SimpleTokenM
 
 func NewGitRepo(r *Repo) (*GitRepo, error) {
 	gR := GitRepo{repo: r}
+
 	if err := gR.openRepo(); err != nil {
 		return nil, err
 	}

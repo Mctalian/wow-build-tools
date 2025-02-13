@@ -172,7 +172,7 @@ var buildCmd = &cobra.Command{
 			return
 		}
 
-		cl, err := changelog.NewChangelog(vR.(*repo.BaseVcsRepo), pkgMeta, projectName, packageDir)
+		cl, err := changelog.NewChangelog(vR, pkgMeta, projectName, packageDir)
 		if err != nil {
 			logger.Error("Changelog Error: %v", err)
 			os.Exit(1)

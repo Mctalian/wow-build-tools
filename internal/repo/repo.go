@@ -15,6 +15,7 @@ type VcsRepo interface {
 	GetInjectionValues(stm *tokens.SimpleTokenMap) error
 	GetFileInjectionValues(filePath string) (*tokens.SimpleTokenMap, error)
 	GetTopDir() string
+	GetChangelog(projectName string) (string, error)
 }
 
 type BaseVcsRepo struct {
@@ -22,6 +23,7 @@ type BaseVcsRepo struct {
 	repo            *Repo
 	CurrentTag      string
 	PreviousVersion string
+	ProjectVersion  string
 }
 
 func (bV *BaseVcsRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
@@ -34,6 +36,10 @@ func (bV *BaseVcsRepo) IsIgnored(path string, isDir bool) bool {
 
 func (bV *BaseVcsRepo) GetTopDir() string {
 	return bV.repo.GetTopDir()
+}
+
+func (bV *BaseVcsRepo) GetChangelog(projectName string) (string, error) {
+	return "", nil
 }
 
 type Repo struct {

@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"time"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
@@ -80,6 +79,7 @@ type curseUpload struct {
 	zipFile      string
 	displayName  string
 	gameVersions []int
+	changelog    *changelog.Changelog
 }
 
 type gameVersion struct {
@@ -156,9 +156,19 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 
 	// TODO: Currently not possible to specify incompatible relationships
 
+	changelogPath, err := c.changelog.GetChangelog()
+	if err != nil {
+		return
+	}
+
+	changelogContents, err := os.ReadFile(changelogPath)
+	if err != nil {
+		return
+	}
+
 	payload := cursePayload{
-		Changelog:     "Testing upload",
-		ChangelogType: changelog.TextMT,
+		Changelog:     string(changelogContents),
+		ChangelogType: c.changelog.MarkupType,
 		DisplayName:   c.displayName,
 		ReleaseType:   AlphaRelease,
 		GameVersions:  c.gameVersions,
@@ -277,58 +287,58 @@ func (c *curseUpload) upload() (err error) {
 		return fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	// Create the POST request
-	req, err := http.NewRequest("POST", c.uploadUrl, &body)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	// Set the proper headers
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("x-api-token", c.token) // Adjust this header key if needed
+	// // Create the POST request
+	// req, err := http.NewRequest("POST", c.uploadUrl, &body)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create request: %w", err)
+	// }
+	// // Set the proper headers
+	// req.Header.Set("Content-Type", writer.FormDataContentType())
+	// req.Header.Set("Accept", "application/json")
+	// req.Header.Set("x-api-token", c.token) // Adjust this header key if needed
 
-	// Prepare the HTTP client and exponential backoff parameters
-	client := &http.Client{}
-	maxAttempts := 5
-	delay := 2 * time.Second
+	// // Prepare the HTTP client and exponential backoff parameters
+	// client := &http.Client{}
+	// maxAttempts := 5
+	// delay := 2 * time.Second
 
-	var resp *http.Response
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		resp, err = client.Do(req)
-		if err == nil && (resp.StatusCode >= 200 && resp.StatusCode < 300) {
-			logger.Info("Upload successful!")
-			return
-		}
+	// var resp *http.Response
+	// for attempt := 1; attempt <= maxAttempts; attempt++ {
+	// 	resp, err = client.Do(req)
+	// 	if err == nil && (resp.StatusCode >= 200 && resp.StatusCode < 300) {
+	// 		logger.Info("Upload successful!")
+	// 		return
+	// 	}
 
-		// Log the error details for debugging
-		if err != nil {
-			logger.Error("upload error: %s", err)
-		} else {
-			jsonBody := map[string]interface{}{}
-			err = json.NewDecoder(resp.Body).Decode(&jsonBody)
-			if err != nil {
-				logger.Error("failed to decode response body: %s", err)
-			}
+	// 	// Log the error details for debugging
+	// 	if err != nil {
+	// 		logger.Error("upload error: %s", err)
+	// 	} else {
+	// 		jsonBody := map[string]interface{}{}
+	// 		err = json.NewDecoder(resp.Body).Decode(&jsonBody)
+	// 		if err != nil {
+	// 			logger.Error("failed to decode response body: %s", err)
+	// 		}
 
-			logger.Warn("%v", jsonBody)
-			logger.Error("unexpected status code: %d", resp.StatusCode)
-		}
+	// 		logger.Warn("%v", jsonBody)
+	// 		logger.Error("unexpected status code: %d", resp.StatusCode)
+	// 	}
 
-		// If not the last attempt, wait for the delay before retrying
-		if attempt < maxAttempts {
-			logger.Info("Retrying in %s...", delay)
-			time.Sleep(delay)
-			delay *= 2 // Exponential backoff: double the delay each time
-		}
-	}
+	// 	// If not the last attempt, wait for the delay before retrying
+	// 	if attempt < maxAttempts {
+	// 		logger.Info("Retrying in %s...", delay)
+	// 		time.Sleep(delay)
+	// 		delay *= 2 // Exponential backoff: double the delay each time
+	// 	}
+	// }
 
-	// If we exhausted our attempts, report the failure.
-	if err != nil {
-		return fmt.Errorf("upload failed after %d attempts: %w", maxAttempts, err)
-	}
-	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
-		return fmt.Errorf("upload failed with status code %d", resp.StatusCode)
-	}
+	// // If we exhausted our attempts, report the failure.
+	// if err != nil {
+	// 	return fmt.Errorf("upload failed after %d attempts: %w", maxAttempts, err)
+	// }
+	// if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+	// 	return fmt.Errorf("upload failed with status code %d", resp.StatusCode)
+	// }
 
 	return nil
 }
@@ -385,6 +395,7 @@ func UploadToCurse(args UploadCurseArgs) error {
 		uploadUrl:   fmt.Sprintf("%sprojects/%s/upload-file", curseApiUrl, curseId),
 		zipFile:     args.ZipPath,
 		displayName: args.FileLabel,
+		changelog:   args.Changelog,
 	}
 
 	if err := curseUpload.lookupCurseToken(); err != nil {

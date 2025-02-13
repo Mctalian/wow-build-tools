@@ -19,7 +19,8 @@ const (
 )
 
 type Changelog struct {
-	repo                *repo.BaseVcsRepo
+	repo                repo.VcsRepo
+	projectName         string
 	pkgDir              string
 	PreExistingFilePath string
 	MarkupType          MarkupType
@@ -84,13 +85,33 @@ func (c *Changelog) GetChangelog() (string, error) {
 	c.MarkupType = MarkdownMT
 	c.PreExistingFilePath = filepath.Join(c.pkgDir, "CHANGELOG.md")
 
-	return "", nil
+	// Write the changelog to the package directory
+	f, err := os.OpenFile(c.PreExistingFilePath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.Error("Could not create the changelog file: %v", err)
+		return "", err
+	}
+	defer f.Close()
+
+	contents, err := c.repo.GetChangelog(c.projectName)
+	if err != nil {
+		logger.Error("Could not get the changelog from the repository: %v", err)
+		return "", err
+	}
+	_, err = f.WriteString(contents)
+	if err != nil {
+		logger.Error("Could not write the changelog to the file: %v", err)
+		return "", err
+	}
+
+	return c.PreExistingFilePath, nil
 }
 
-func NewChangelog(repo *repo.BaseVcsRepo, pkgMeta *pkg.PkgMeta, projectName string, pkgDir string) (*Changelog, error) {
+func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, projectName string, pkgDir string) (*Changelog, error) {
 	var changelog *Changelog
 	if pkgMeta.ManualChangelog.Filename != "" {
 		changelog = &Changelog{
+			projectName:         projectName,
 			pkgDir:              pkgDir,
 			repo:                repo,
 			PreExistingFilePath: pkgMeta.ManualChangelog.Filename,
@@ -109,6 +130,7 @@ func NewChangelog(repo *repo.BaseVcsRepo, pkgMeta *pkg.PkgMeta, projectName stri
 
 	// If the manual changelog wasn't found or was invalid, generate one
 	changelog = &Changelog{
+		projectName:         projectName,
 		pkgDir:              pkgDir,
 		repo:                repo,
 		MarkupType:          MarkdownMT,
