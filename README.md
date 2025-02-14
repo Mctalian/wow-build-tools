@@ -2,7 +2,7 @@
 
 <img src="icon.jpg" alt="wow-build-tools" width="200">
 
-This repository is aims to be a collection of tools to help with the development of World of Warcraft addons. The main focus is on speed and ease of use, with the goal of making the development process as smooth as possible.
+This repository aims to be a collection of tools to help with the development of World of Warcraft addons. The main focus is on speed and ease of use, with the goal of making the development process as smooth as possible.
 
 ## Features
 
@@ -108,7 +108,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [ ] `@version-bcc@`
   - [ ] `@version-wrath@`
   - [ ] `@version-cata@`
-  - [ ] `@version-mop@` - assuming the trend contiues
+  - [ ] `@version-mop@` - assuming the trend continues
   - [ ] `@version-wod@`
   - [ ] `@version-legion@`
   - [ ] `@version-bfa@`
@@ -172,6 +172,7 @@ In addition to feature parity with `BigWigsMods/packager`, I have a few ideas fo
 - [ ] Various warnings and checks to help catch issues with the addon before packaging
 - [ ] Monorepo support
 - [ ] Automatic propagation of addon changes to all installed and compatible game versions
+- [ ] Option to create a Lua version of the changelog
 - [ ] New Addon Scaffolding
 - [ ] A badge to proudly display that your addon is built with `wow-build-tools`!
 
