@@ -108,6 +108,32 @@ func copyExternal(e *external.ExternalEntry, packageDir string) error {
 	return copyFromCacheToPackageDir(destPath, repoCachePath, e.LogGroup)
 }
 
+func CopySingleFile(path string, destPath string, logGroup *logger.LogGroup) error {
+	if logGroup != nil {
+		logGroup.Info("📑 Copying file %s", path)
+	}
+	// Open the source file.
+	srcFile, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("error opening file %s: %v", path, err)
+	}
+	// Create the destination file.
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		srcFile.Close()
+		return fmt.Errorf("error creating file %s: %v", destPath, err)
+	}
+	// Copy file contents.
+	_, err = io.Copy(destFile, srcFile)
+	srcFile.Close()
+	destFile.Close()
+	if err != nil {
+		return fmt.Errorf("error copying file %s to %s: %v", path, destPath, err)
+	}
+
+	return nil
+}
+
 func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 	topDir := p.TopDir
 	packageDir := p.PackageDir
@@ -187,24 +213,9 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 				return fmt.Errorf("error creating directory %s: %v", destPath, err)
 			}
 		} else {
-			logGroup.Info("📑 Copying file %s", path)
-			// Open the source file.
-			srcFile, err := os.Open(path)
+			err = CopySingleFile(path, destPath, logGroup)
 			if err != nil {
-				return fmt.Errorf("error opening file %s: %v", path, err)
-			}
-			// Create the destination file.
-			destFile, err := os.Create(destPath)
-			if err != nil {
-				srcFile.Close()
-				return fmt.Errorf("error creating file %s: %v", destPath, err)
-			}
-			// Copy file contents.
-			_, err = io.Copy(destFile, srcFile)
-			srcFile.Close()
-			destFile.Close()
-			if err != nil {
-				return fmt.Errorf("error copying file %s to %s: %v", path, destPath, err)
+				return err
 			}
 		}
 		return nil
@@ -234,11 +245,11 @@ func tryParsePkgMetaIgnores(pkgDir string, logGroup *logger.LogGroup) ([]string,
 	return pkgMeta.Ignore, nil
 }
 
-func NewPkgCopy(topDir, packageDir string, ignore []string, repo repo.VcsRepo) *PkgCopy {
+func NewPkgCopy(topDir, packageDir string, ignores []string, repo repo.VcsRepo) *PkgCopy {
 	return &PkgCopy{
 		TopDir:     topDir,
 		PackageDir: packageDir,
-		Ignore:     ignore,
+		Ignore:     ignores,
 		Repo:       repo,
 	}
 }

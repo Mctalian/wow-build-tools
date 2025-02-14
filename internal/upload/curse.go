@@ -156,10 +156,7 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 
 	// TODO: Currently not possible to specify incompatible relationships
 
-	changelogPath, err := c.changelog.GetChangelog()
-	if err != nil {
-		return
-	}
+	changelogPath := c.changelog.PreExistingFilePath
 
 	changelogContents, err := os.ReadFile(changelogPath)
 	if err != nil {

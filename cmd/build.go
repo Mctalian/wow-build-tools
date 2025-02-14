@@ -172,13 +172,6 @@ var buildCmd = &cobra.Command{
 			return
 		}
 
-		cl, err := changelog.NewChangelog(vR, pkgMeta, projectName, packageDir)
-		if err != nil {
-			logger.Error("Changelog Error: %v", err)
-			os.Exit(1)
-			return
-		}
-
 		if !f.SkipCopy {
 			projCopy := pkg.NewPkgCopy(topDir, packageDir, pkgMeta.Ignore, vR)
 			err = projCopy.CopyToPackageDir(copyLogGroup)
@@ -219,6 +212,26 @@ var buildCmd = &cobra.Command{
 			os.Exit(1)
 			return
 		}
+
+		var changelogTitle string
+		if pkgMeta.ChangelogTitle != "" {
+			changelogTitle = pkgMeta.ChangelogTitle
+		} else {
+			changelogTitle = projectName
+		}
+		cl, err := changelog.NewChangelog(vR, pkgMeta, changelogTitle, packageDir, topDir)
+		if err != nil {
+			logger.Error("Changelog Error: %v", err)
+			os.Exit(1)
+			return
+		}
+		err = cl.GetChangelog()
+		if err != nil {
+			logger.Error("GetChangelog Error: %v", err)
+			os.Exit(1)
+			return
+		}
+
 		err = i.Execute()
 		if err != nil {
 			logger.Error("Injector Execute Error: %v", err)
@@ -240,6 +253,12 @@ var buildCmd = &cobra.Command{
 		isNoLib := f.CreateNoLib || pkgMeta.EnableNoLibCreation
 
 		if !f.SkipZip {
+			if err != nil {
+				logger.Error("Changelog Error: %v", err)
+				os.Exit(1)
+				return
+			}
+
 			zipsToCreate := 1
 			if isNoLib {
 				zipsToCreate++
@@ -304,14 +323,6 @@ var buildCmd = &cobra.Command{
 			}
 			if err = upload.UploadToCurse(curseArgs); err != nil {
 				logger.Error("Curse Upload Error: %v", err)
-				os.Exit(1)
-				return
-			}
-		} else {
-			// Just in case we need to generate the changelog
-			_, err = cl.GetChangelog()
-			if err != nil {
-				logger.Error("Changelog Error: %v", err)
 				os.Exit(1)
 				return
 			}

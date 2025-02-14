@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
@@ -20,8 +21,9 @@ const (
 
 type Changelog struct {
 	repo                repo.VcsRepo
-	projectName         string
+	title               string
 	pkgDir              string
+	topDir              string
 	PreExistingFilePath string
 	MarkupType          MarkupType
 	generateChangelog   bool
@@ -37,7 +39,7 @@ func (c *Changelog) verifyManualChangelog() error {
 	pkgDir := c.pkgDir
 
 	relativeFilePath := c.PreExistingFilePath
-	topDirChangelogPath := filepath.Join(c.repo.GetTopDir(), relativeFilePath)
+	topDirChangelogPath := filepath.Join(c.topDir, relativeFilePath)
 	pkgDirChangelogPath := filepath.Join(pkgDir, relativeFilePath)
 
 	if _, err := os.Stat(topDirChangelogPath); os.IsNotExist(err) {
@@ -66,16 +68,28 @@ func (c *Changelog) verifyManualChangelog() error {
 	return err
 }
 
-func (c *Changelog) GetChangelog() (string, error) {
+func (c *Changelog) GetChangelog() error {
 	if !c.generateChangelog {
 		_, err := os.Stat(c.PreExistingFilePath)
 		if err == nil {
-			contents, err := os.ReadFile(c.PreExistingFilePath)
+			_, err := os.ReadFile(c.PreExistingFilePath)
 			if err != nil {
 				logger.Error("Could not read the manual changelog file (even though it exists): %v", err)
-				return "", err
+				return err
 			}
-			return string(contents), nil
+			if strings.Contains(c.PreExistingFilePath, c.pkgDir) {
+				return nil
+			} else {
+				destPath := filepath.Join(c.pkgDir, strings.TrimPrefix(c.PreExistingFilePath, c.topDir))
+				err = pkg.CopySingleFile(c.PreExistingFilePath, destPath, nil)
+				if err != nil {
+					logger.Error("Attempting generation - could not copy the manual changelog file to the package directory: %v", err)
+				} else {
+					c.PreExistingFilePath = destPath
+					return nil
+				}
+			}
+			return nil
 		} else {
 			logger.Warn("%v: will attempt to generate from commits instead", err)
 		}
@@ -89,29 +103,34 @@ func (c *Changelog) GetChangelog() (string, error) {
 	f, err := os.OpenFile(c.PreExistingFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.Error("Could not create the changelog file: %v", err)
-		return "", err
+		return err
 	}
 	defer f.Close()
 
-	contents, err := c.repo.GetChangelog(c.projectName)
+	contents, err := c.repo.GetChangelog(c.title)
 	if err != nil {
 		logger.Error("Could not get the changelog from the repository: %v", err)
-		return "", err
+		return err
 	}
 	_, err = f.WriteString(contents)
 	if err != nil {
 		logger.Error("Could not write the changelog to the file: %v", err)
-		return "", err
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		logger.Error("Could not sync the changelog file: %v", err)
+		return err
 	}
 
-	return c.PreExistingFilePath, nil
+	return nil
 }
 
-func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, projectName string, pkgDir string) (*Changelog, error) {
+func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, title string, pkgDir string, topDir string) (*Changelog, error) {
 	var changelog *Changelog
 	if pkgMeta.ManualChangelog.Filename != "" {
 		changelog = &Changelog{
-			projectName:         projectName,
+			topDir:              topDir,
+			title:               title,
 			pkgDir:              pkgDir,
 			repo:                repo,
 			PreExistingFilePath: pkgMeta.ManualChangelog.Filename,
@@ -130,7 +149,7 @@ func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, projectName string, p
 
 	// If the manual changelog wasn't found or was invalid, generate one
 	changelog = &Changelog{
-		projectName:         projectName,
+		title:               title,
 		pkgDir:              pkgDir,
 		repo:                repo,
 		MarkupType:          MarkdownMT,

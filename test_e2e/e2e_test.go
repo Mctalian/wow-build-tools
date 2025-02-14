@@ -28,6 +28,7 @@ func TestAddonProcessing(t *testing.T) {
 			"TestIgnores",
 			"test_ignores",
 			func(t *testing.T) {
+				cliflags.SkipUpload = true
 				cliflags.SkipZip = true
 				cliflags.ForceExternals = false
 			},
@@ -56,6 +57,7 @@ func TestAddonProcessing(t *testing.T) {
 			"TestSvnExternals",
 			"test_svn_externals",
 			func(t *testing.T) {
+				cliflags.SkipUpload = true
 				cliflags.SkipZip = true
 				cliflags.ForceExternals = true
 			},
@@ -82,6 +84,7 @@ func TestAddonProcessing(t *testing.T) {
 			"TestGitExternals",
 			"test_git_externals",
 			func(t *testing.T) {
+				cliflags.SkipUpload = true
 				cliflags.SkipZip = true
 				cliflags.ForceExternals = true
 			},
@@ -102,6 +105,7 @@ func TestAddonProcessing(t *testing.T) {
 			"TestZip",
 			"test_zip",
 			func(t *testing.T) {
+				cliflags.SkipUpload = true
 				cliflags.SkipZip = false
 				cliflags.ForceExternals = false
 			},
@@ -119,6 +123,7 @@ func TestAddonProcessing(t *testing.T) {
 			"TestZipNoLib",
 			"test_zip_nolib",
 			func(t *testing.T) {
+				cliflags.SkipUpload = true
 				cliflags.SkipZip = false
 				cliflags.ForceExternals = false
 			},
@@ -130,6 +135,39 @@ func TestAddonProcessing(t *testing.T) {
 				assert.DirExists(t, filepath.Join(output, "TestZipNoLib"))
 				assert.FileExists(t, filepath.Join(output, "TestZipNoLib", "TestZipNoLib.toc"))
 				assert.FileExists(t, filepath.Join(output, "TestZipNoLib", "Core.lua"))
+			},
+		},
+		{
+			"TestManualChangelog",
+			"test_manual_changelog",
+			func(t *testing.T) {
+				cliflags.SkipUpload = true
+				cliflags.SkipZip = true
+				cliflags.ForceExternals = false
+			},
+			func(t *testing.T, output string) {
+				assert.DirExists(t, filepath.Join(output, "TestManualChangelog"))
+				assert.FileExists(t, filepath.Join(output, "TestManualChangelog", "TestManualChangelog.toc"))
+				assert.FileExists(t, filepath.Join(output, "TestManualChangelog", "Core.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestManualChangelog", "CHANGELOG.txt"))
+			},
+		},
+		{
+			"TestChangelogTitle",
+			"test_changelog_title",
+			func(t *testing.T) {
+				cliflags.SkipUpload = true
+				cliflags.SkipZip = true
+				cliflags.ForceExternals = false
+			},
+			func(t *testing.T, output string) {
+				assert.DirExists(t, filepath.Join(output, "TestChangelogTitle"))
+				assert.FileExists(t, filepath.Join(output, "TestChangelogTitle", "TestChangelogTitle.toc"))
+				assert.FileExists(t, filepath.Join(output, "TestChangelogTitle", "Core.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestChangelogTitle", "CHANGELOG.md"))
+				contents, err := os.ReadFile(filepath.Join(output, "TestChangelogTitle", "CHANGELOG.md"))
+				assert.NoError(t, err)
+				assert.Contains(t, string(contents), "TEST CHANGELOG TITLE")
 			},
 		},
 	}

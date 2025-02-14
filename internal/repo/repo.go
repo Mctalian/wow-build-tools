@@ -14,8 +14,8 @@ type VcsRepo interface {
 	IsIgnored(path string, isDir bool) bool
 	GetInjectionValues(stm *tokens.SimpleTokenMap) error
 	GetFileInjectionValues(filePath string) (*tokens.SimpleTokenMap, error)
-	GetTopDir() string
-	GetChangelog(projectName string) (string, error)
+	GetRepoRoot() string
+	GetChangelog(title string) (string, error)
 }
 
 type BaseVcsRepo struct {
@@ -34,21 +34,21 @@ func (bV *BaseVcsRepo) IsIgnored(path string, isDir bool) bool {
 	return false
 }
 
-func (bV *BaseVcsRepo) GetTopDir() string {
-	return bV.repo.GetTopDir()
+func (bV *BaseVcsRepo) GetRepoRoot() string {
+	return bV.repo.GetRepoRoot()
 }
 
-func (bV *BaseVcsRepo) GetChangelog(projectName string) (string, error) {
+func (bV *BaseVcsRepo) GetChangelog(title string) (string, error) {
 	return "", nil
 }
 
 type Repo struct {
-	topDir      string
+	repoRoot    string
 	repoVcsType external.VcsType
 }
 
-func (r *Repo) GetTopDir() string {
-	return r.topDir
+func (r *Repo) GetRepoRoot() string {
+	return r.repoRoot
 }
 
 func (r *Repo) GetVcsType() external.VcsType {
@@ -60,7 +60,7 @@ func (r *Repo) GetVcsTypeString() string {
 }
 
 func (r *Repo) String() string {
-	return fmt.Sprintf("TopDir: %s\nVcsType: %s", r.topDir, r.repoVcsType.ToString())
+	return fmt.Sprintf("TopDir: %s\nVcsType: %s", r.repoRoot, r.repoVcsType.ToString())
 }
 
 func NewRepo(topDir string) (*Repo, error) {
@@ -118,7 +118,7 @@ func NewRepo(topDir string) (*Repo, error) {
 	}
 
 	return &Repo{
-		topDir:      newTopDir,
+		repoRoot:    newTopDir,
 		repoVcsType: repoVcsType,
 	}, nil
 }

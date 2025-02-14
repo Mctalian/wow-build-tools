@@ -13,7 +13,7 @@ I have many plans for this project, and I will communicate those plans at a late
 To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for `BigWigsMods/packager` as possible. That means, ideally, it should be able to handle all of the same features as `packager` with the same level of ease and speed or better:
 
 - [ ] Support for WoW addons leveraging the following VCS (in order of priority):
-  - [ ] Git
+  - [x] Git
   - [ ] SVN
   - [ ] Mercurial
 - [x] Support storing secrets in a `.env` file
@@ -39,10 +39,10 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `enable-nolib-creation`
   - [ ] `enable-toc-creation`
   - [ ] `license-output`
-  - [ ] `manual-changelog`
-    - [ ] `filename`
-    - [ ] `markup-type` (`markdown`, `html`, `text`)
-  - [ ] `changelog-title`
+  - [x] `manual-changelog`
+    - [x] `filename`
+    - [x] `markup-type` (`markdown`, `html`, `text`)
+  - [x] `changelog-title`
   - [ ] `wowi-create-changelog`
   - [ ] `wowi-convert-changelog`
   - [ ] `wowi-archive-previous`
@@ -151,9 +151,12 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `{nolib}`
   - [ ] `{classic}`
 - [ ] Generate a changelog
+  - [x] Git
+  - [ ] SVN
+  - [ ] Mercurial
 - [ ] Creating and Updating GitHub Releases
   - [ ] Upload output assets to GitHub Releases
-- [ ] Upload to CurseForge
+- [x] Upload to CurseForge
 - [ ] Upload to WoWInterface
 - [ ] Upload to Wago.io
 - [ ] A GitHub Action available via the GitHub Marketplace

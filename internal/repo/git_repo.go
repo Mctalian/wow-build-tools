@@ -35,6 +35,10 @@ type GitRepo struct {
 	previousVersionHash string
 }
 
+func (gR *GitRepo) GetRepoRoot() string {
+	return gR.repo.GetRepoRoot()
+}
+
 func (gR *GitRepo) parseGitHubURL() {
 	gitHubUrl := strings.TrimSuffix(strings.TrimSuffix(gR.originURL, ".git"), "/")
 	segments := strings.Split(gitHubUrl, "github.com")
@@ -56,7 +60,7 @@ func (gR *GitRepo) parseGitHubURL() {
 
 func (gR *GitRepo) openRepo() error {
 	var err error
-	gR.gitRepo, err = git.PlainOpen(gR.repo.GetTopDir())
+	gR.gitRepo, err = git.PlainOpen(gR.repo.GetRepoRoot())
 	if err != nil {
 		return fmt.Errorf("failed to open git repository: %w", err)
 	}
@@ -410,9 +414,9 @@ func (gR *GitRepo) getProjectTag() (tag7 string, tag0 string, err error) {
 	return tag7, tag0, nil
 }
 
-func (gR *GitRepo) buildChangelogHeader(projectName string) string {
+func (gR *GitRepo) buildChangelogHeader(title string) string {
 	var header strings.Builder
-	header.WriteString(fmt.Sprintf("# %s\n\n", projectName))
+	header.WriteString(fmt.Sprintf("# %s\n\n", title))
 
 	var versionLink, changeLink string
 	previousReleasesLink := fmt.Sprintf("[Previous Releases](%s/releases)", gR.gitHubUrl)
@@ -441,7 +445,7 @@ func (gR *GitRepo) buildChangelogHeader(projectName string) string {
 	return header.String()
 }
 
-func (gR *GitRepo) GetChangelog(projectName string) (string, error) {
+func (gR *GitRepo) GetChangelog(title string) (string, error) {
 	commitIter, err := gR.gitRepo.Log(&git.LogOptions{
 		From:  gR.headRef.Hash(),
 		Order: git.LogOrderCommitterTime,
@@ -452,7 +456,7 @@ func (gR *GitRepo) GetChangelog(projectName string) (string, error) {
 
 	ErrFoundPrevVersion := fmt.Errorf("found previous version")
 	var changelog strings.Builder
-	changelog.WriteString(gR.buildChangelogHeader(projectName))
+	changelog.WriteString(gR.buildChangelogHeader(title))
 	err = commitIter.ForEach(func(c *object.Commit) error {
 		if c.Hash.String() == gR.previousVersionHash {
 			return ErrFoundPrevVersion

@@ -1,0 +1,4 @@
+changelog-title: "TEST CHANGELOG TITLE"
+
+ignore:
+  - "*.txt"
