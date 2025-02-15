@@ -326,17 +326,19 @@ var buildCmd = &cobra.Command{
 				}
 			}
 
-			curseArgs := upload.UploadCurseArgs{
-				ZipPath:   zipFilePath,
-				FileLabel: templateTokens.GetLabel(&tokenMap, false),
-				TocFiles:  tocFiles,
-				PkgMeta:   pkgMeta,
-				Changelog: cl,
-			}
-			if err = upload.UploadToCurse(curseArgs); err != nil {
-				logger.Error("Curse Upload Error: %v", err)
-				os.Exit(1)
-				return
+			if !f.SkipUpload {
+				curseArgs := upload.UploadCurseArgs{
+					ZipPath:   zipFilePath,
+					FileLabel: templateTokens.GetLabel(&tokenMap, false),
+					TocFiles:  tocFiles,
+					PkgMeta:   pkgMeta,
+					Changelog: cl,
+				}
+				if err = upload.UploadToCurse(curseArgs); err != nil {
+					logger.Error("Curse Upload Error: %v", err)
+					os.Exit(1)
+					return
+				}
 			}
 		}
 

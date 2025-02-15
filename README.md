@@ -38,7 +38,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `embedded-libraries`
   - [x] `enable-nolib-creation`
   - [ ] `enable-toc-creation`
-  - [ ] `license-output` (test_e2e/test_license_exist, test_e2e/test_license_download)
+  - [x] `license-output` (test_e2e/test_license_exist, test_e2e/test_license_download)
   - [x] `manual-changelog`
     - [x] `filename`
     - [x] `markup-type` (`markdown`, `html`, `text`)
@@ -48,7 +48,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [ ] `wowi-archive-previous`
 - [ ] Handle CLI arguments:
   - [x] `-c` Skip copying files to package directory
-  - [ ] `-d` Skip uploading/distributing
+  - [x] `-d` Skip uploading/distributing
   - [x] `-e` Skip fetching externals
   - [ ] `-l` Skip @localization@ token replacement
   - [ ] `-L` Only do @localization@ token replacement (skip upload to CurseForge)
@@ -167,7 +167,8 @@ Since WoW has been around since 2004, there are a lot of addons that have been a
 
 In addition to feature parity with `BigWigsMods/packager`, I have a few ideas for additional features that I think would be useful for addon authors:
 
-- [ ] Autoupdating the tool itself
+- [x] Autoupdating the tool itself
+- [ ] More token replacements
 - [ ] Guided tour of the tool
 - [ ] Various warnings and checks to help catch issues with the addon before packaging
 - [ ] Monorepo support
