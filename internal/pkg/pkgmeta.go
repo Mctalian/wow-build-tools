@@ -33,6 +33,7 @@ type PkgMeta struct {
 	ToolsUsed            []string                          `yaml:"tools-used"`
 	ManualChangelog      PkgMetaManualChangelog            `yaml:"manual-changelog"`
 	ChangelogTitle       string                            `yaml:"changelog-title"`
+	License              string                            `yaml:"license-output"`
 }
 
 type PkgMetaFileNotFound struct{}

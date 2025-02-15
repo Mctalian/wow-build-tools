@@ -45,6 +45,7 @@ const (
 	BuildDate          ValidToken = "build-date"
 	BuildDateIso       ValidToken = "build-date-iso"
 	BuildDateInteger   ValidToken = "build-date-integer"
+	BuildYear          ValidToken = "build-year"
 	BuildTimestamp     ValidToken = "build-timestamp"
 	GameType           ValidToken = "game-type"
 	ReleaseType        ValidToken = "release-type"
@@ -98,6 +99,7 @@ var buildTokens = []ValidToken{
 	BuildDateIso,
 	BuildDateInteger,
 	BuildTimestamp,
+	BuildYear,
 }
 
 var buildTypeTokens = []ValidToken{

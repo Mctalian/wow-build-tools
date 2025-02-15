@@ -3,8 +3,10 @@ package test_e2e
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/McTalian/wow-build-tools/cmd"
 	"github.com/McTalian/wow-build-tools/internal/cliflags"
@@ -168,6 +170,48 @@ func TestAddonProcessing(t *testing.T) {
 				contents, err := os.ReadFile(filepath.Join(output, "TestChangelogTitle", "CHANGELOG.md"))
 				assert.NoError(t, err)
 				assert.Contains(t, string(contents), "TEST CHANGELOG TITLE")
+			},
+		},
+		{
+			"TestLicenseExist",
+			"test_license_exist",
+			func(t *testing.T) {
+				cliflags.SkipUpload = true
+				cliflags.SkipZip = true
+				cliflags.ForceExternals = false
+			},
+			func(t *testing.T, output string) {
+				assert.DirExists(t, filepath.Join(output, "TestLicenseExist"))
+				assert.FileExists(t, filepath.Join(output, "TestLicenseExist", "TestLicenseExist.toc"))
+				assert.FileExists(t, filepath.Join(output, "TestLicenseExist", "Core.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestLicenseExist", "my_license.txt"))
+				contents, err := os.ReadFile(filepath.Join(output, "TestLicenseExist", "my_license.txt"))
+				assert.NoError(t, err)
+				assert.Contains(t, string(contents), "License to view")
+			},
+		},
+		{
+			"TestLicenseDownload",
+			"test_license_download",
+			func(t *testing.T) {
+				cliflags.SkipUpload = true
+				cliflags.SkipZip = true
+				cliflags.ForceExternals = false
+				cliflags.CurseId = "1082791"
+			},
+			func(t *testing.T, output string) {
+				assert.DirExists(t, filepath.Join(output, "TestLicenseDownload"))
+				assert.FileExists(t, filepath.Join(output, "TestLicenseDownload", "TestLicenseDownload.toc"))
+				assert.FileExists(t, filepath.Join(output, "TestLicenseDownload", "Core.lua"))
+				assert.FileExists(t, filepath.Join(output, "TestLicenseDownload", "my_license.txt"))
+				contents, err := os.ReadFile(filepath.Join(output, "TestLicenseDownload", "my_license.txt"))
+				strContents := string(contents)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, strContents)
+				assert.Contains(t, strContents, "MIT")
+				assert.Contains(t, strContents, strconv.Itoa(time.Now().UTC().Year()))
+				assert.Contains(t, strContents, "Rob Anderson")
+				assert.NotContains(t, strContents, "<p>")
 			},
 		},
 	}

@@ -529,8 +529,6 @@ func (gR *GitRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	}
 	gR.ProjectVersion = tag7
 
-	logger.Warn("Previous version: %s", gR.PreviousVersion)
-
 	return nil
 }
 

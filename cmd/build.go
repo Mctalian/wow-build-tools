@@ -18,6 +18,7 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/external"
 	"github.com/McTalian/wow-build-tools/internal/github"
 	"github.com/McTalian/wow-build-tools/internal/injector"
+	"github.com/McTalian/wow-build-tools/internal/license"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/repo"
@@ -63,11 +64,14 @@ var buildCmd = &cobra.Command{
 			}
 		}
 
-		buildTimestamp := time.Now().Unix()
-		buildDate := time.Now().UTC().Format("2006-01-02")
-		buildDateIso := time.Now().UTC().Format("2006-01-02T15:04:05Z")
-		buildDateInteger := time.Now().UTC().Format("20060102150405")
+		timeNow := time.Now()
+		timeNowUtc := timeNow.UTC()
+		buildTimestamp := timeNow.Unix()
 		buildTimestampStr := strconv.FormatInt(buildTimestamp, 10)
+		buildDate := timeNowUtc.Format("2006-01-02")
+		buildDateIso := timeNowUtc.Format("2006-01-02T15:04:05Z")
+		buildDateInteger := timeNowUtc.Format("20060102150405")
+		buildYear := timeNowUtc.Format("2006")
 		topDir := f.TopDir
 		if cmd.Flags().Changed("topDir") && !cmd.Flags().Changed("releaseDir") {
 			f.ReleaseDir = topDir + "/.release"
@@ -172,6 +176,13 @@ var buildCmd = &cobra.Command{
 			return
 		}
 
+		err = license.EnsureLicensePresent(pkgMeta.License, topDir, packageDir, f.CurseId)
+		if err != nil {
+			logger.Error("License Error: %v", err)
+			os.Exit(1)
+			return
+		}
+
 		if !f.SkipCopy {
 			projCopy := pkg.NewPkgCopy(topDir, packageDir, pkgMeta.Ignore, vR)
 			err = projCopy.CopyToPackageDir(copyLogGroup)
@@ -189,6 +200,7 @@ var buildCmd = &cobra.Command{
 			tokens.BuildDate:        buildDate,
 			tokens.BuildDateIso:     buildDateIso,
 			tokens.BuildDateInteger: buildDateInteger,
+			tokens.BuildYear:        buildYear,
 		}
 		github.Output(string(tokens.PackageName), tokenMap[tokens.PackageName])
 

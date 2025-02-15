@@ -38,7 +38,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `embedded-libraries`
   - [x] `enable-nolib-creation`
   - [ ] `enable-toc-creation`
-  - [ ] `license-output`
+  - [ ] `license-output` (test_e2e/test_license_exist, test_e2e/test_license_download)
   - [x] `manual-changelog`
     - [x] `filename`
     - [x] `markup-type` (`markdown`, `html`, `text`)
