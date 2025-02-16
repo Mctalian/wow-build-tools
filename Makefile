@@ -18,7 +18,7 @@ run: build
 test:
 	@mkdir -p ./.coverage
 	@mkdir -p ./.test-results
-	@go test -tags="e2e" -json ./... -cover -coverpkg=./... -coverprofile="./.coverage/cover.out"
+	@go test -tags="e2e" -v ./... -cover -coverpkg=./... -coverprofile="./.coverage/cover.out"
 	@go tool cover -html="./.coverage/cover.out" -o "./.coverage/report.html"
 	@echo "Test report generated at ./.test-results/report.html"
 	@echo "Coverage report generated at ./.coverage/report.html"

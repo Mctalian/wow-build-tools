@@ -1,7 +1,6 @@
 package injector
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -49,7 +48,6 @@ func TestNewInjector(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vcsRepo := &repo.MockVcsRepo{}
-			fmt.Printf("%d", len(tt.simpleTokens))
 			injector, err := NewInjector(tt.simpleTokens, vcsRepo, "/some/path", tt.buildTypeTokens)
 
 			if tt.expectError {
