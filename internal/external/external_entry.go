@@ -204,7 +204,7 @@ func (e *ExternalEntry) determinePath() {
 func (e *ExternalEntry) GetRepoCachePath() string {
 	cacheDir, _ := cachedir.Get()
 
-	safeName := strings.ReplaceAll(e.URL, "/", "_")
+	safeName := strings.ReplaceAll(e.URL+"_"+e.Tag, "/", "_")
 	return filepath.Join(cacheDir, safeName)
 }
 

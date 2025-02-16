@@ -16,6 +16,9 @@ type VcsRepo interface {
 	GetFileInjectionValues(filePath string) (*tokens.SimpleTokenMap, error)
 	GetRepoRoot() string
 	GetChangelog(title string) (string, error)
+	GetCurrentTag() string
+	GetPreviousVersion() string
+	GetProjectVersion() string
 }
 
 type BaseVcsRepo struct {
@@ -40,6 +43,18 @@ func (bV *BaseVcsRepo) GetRepoRoot() string {
 
 func (bV *BaseVcsRepo) GetChangelog(title string) (string, error) {
 	return "", nil
+}
+
+func (bV *BaseVcsRepo) GetCurrentTag() string {
+	return bV.CurrentTag
+}
+
+func (bV *BaseVcsRepo) GetPreviousVersion() string {
+	return bV.PreviousVersion
+}
+
+func (bV *BaseVcsRepo) GetProjectVersion() string {
+	return bV.ProjectVersion
 }
 
 type Repo struct {

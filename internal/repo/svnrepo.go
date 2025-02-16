@@ -29,6 +29,18 @@ func (sR *SvnRepo) GetChangelog(title string) (string, error) {
 	return "", nil
 }
 
+func (sR *SvnRepo) GetCurrentTag() string {
+	return sR.CurrentTag
+}
+
+func (sR *SvnRepo) GetPreviousVersion() string {
+	return sR.PreviousVersion
+}
+
+func (sR *SvnRepo) GetProjectVersion() string {
+	return sR.ProjectVersion
+}
+
 func NewSvnRepo(r *Repo) (*SvnRepo, error) {
 	sR := SvnRepo{repo: r}
 

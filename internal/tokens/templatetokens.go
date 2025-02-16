@@ -17,6 +17,10 @@ func (v ValidToken) NormalizeTemplateToken() string {
 	return fmt.Sprintf("{%s}", v)
 }
 
+func (v FlagToken) NormalizeTemplateToken() string {
+	return fmt.Sprintf("{%s}", v)
+}
+
 func (t TemplateTokenMap) FromSTM(stm *SimpleTokenMap) {
 	for token, value := range *stm {
 		t[token] = NormalizedTemplateToken{
@@ -40,15 +44,17 @@ var allTemplateTokens = []ValidToken{
 	ReleaseType,
 }
 
-var allTemplateFlags = []ValidToken{
-	Alpha,
-	Beta,
-	NoLib,
-	Classic,
+var allTemplateFlags = []FlagToken{
+	AlphaFlag,
+	BetaFlag,
+	NoLibFlag,
+	ClassicFlag,
 }
 
-var DefaultFile = fmt.Sprintf("%s-%s%s%s", PackageName.NormalizeTemplateToken(), ProjectVersion.NormalizeTemplateToken(), NoLib.NormalizeTemplateToken(), Classic.NormalizeTemplateToken())
-var DefaultLabel = fmt.Sprintf("%s%s%s", ProjectVersion.NormalizeTemplateToken(), Classic.NormalizeTemplateToken(), NoLib.NormalizeTemplateToken())
+type FlagMap map[FlagToken]string
+
+var DefaultFile = fmt.Sprintf("%s-%s%s%s", PackageName.NormalizeTemplateToken(), ProjectVersion.NormalizeTemplateToken(), NoLibFlag.NormalizeTemplateToken(), ClassicFlag.NormalizeTemplateToken())
+var DefaultLabel = fmt.Sprintf("%s%s%s", ProjectVersion.NormalizeTemplateToken(), ClassicFlag.NormalizeTemplateToken(), NoLibFlag.NormalizeTemplateToken())
 
 func tokenSection() string {
 	return fmt.Sprintf(`
@@ -63,7 +69,7 @@ func flagSection() string {
 	return fmt.Sprintf(`
 	Flags:
 		%s%s%s%s
-`, convertToInterfaceSlice(allTemplateFlags)...)
+`, convertFlagsToInterfaceSlice(allTemplateFlags)...)
 }
 
 func NameTemplateUsageInfo() string {
@@ -88,6 +94,14 @@ Name Template Help:
 }
 
 func convertToInterfaceSlice(tokens []ValidToken) []interface{} {
+	converted := make([]interface{}, len(tokens))
+	for i, token := range tokens {
+		converted[i] = token.NormalizeTemplateToken()
+	}
+	return converted
+}
+
+func convertFlagsToInterfaceSlice(tokens []FlagToken) []interface{} {
 	converted := make([]interface{}, len(tokens))
 	for i, token := range tokens {
 		converted[i] = token.NormalizeTemplateToken()
@@ -130,16 +144,14 @@ type NameTemplate struct {
 	HasNoLib      bool
 }
 
-func (n *NameTemplate) GetFileName(stm *SimpleTokenMap, noLib bool) string {
+func (n *NameTemplate) GetFileName(stm *SimpleTokenMap, flags FlagMap) string {
 	ttm := make(TemplateTokenMap)
 	ttm.FromSTM(stm)
 
 	filename := n.FileTemplate
 
-	if noLib {
-		filename = strings.Replace(filename, NoLib.NormalizeTemplateToken(), "-nolib", -1)
-	} else {
-		filename = strings.Replace(filename, NoLib.NormalizeTemplateToken(), "", -1)
+	for key, value := range flags {
+		filename = strings.Replace(filename, key.NormalizeTemplateToken(), value, -1)
 	}
 
 	for _, value := range ttm {
@@ -149,16 +161,14 @@ func (n *NameTemplate) GetFileName(stm *SimpleTokenMap, noLib bool) string {
 	return filename
 }
 
-func (n *NameTemplate) GetLabel(stm *SimpleTokenMap, noLib bool) string {
+func (n *NameTemplate) GetLabel(stm *SimpleTokenMap, flags FlagMap) string {
 	ttm := make(TemplateTokenMap)
 	ttm.FromSTM(stm)
 
 	label := n.LabelTemplate
 
-	if noLib {
-		label = strings.Replace(label, NoLib.NormalizeTemplateToken(), "-nolib", -1)
-	} else {
-		label = strings.Replace(label, NoLib.NormalizeTemplateToken(), "", -1)
+	for key, value := range flags {
+		label = strings.Replace(label, key.NormalizeTemplateToken(), value, -1)
 	}
 
 	for _, value := range ttm {
@@ -198,7 +208,7 @@ func NewNameTemplate(template string) (*NameTemplate, error) {
 
 	// Check if the template includes the NoLib flag.
 	// if it does not, we can't create noLib versions of the package, if requested.
-	hasNoLib := strings.Contains(fileTemplate, NoLib.NormalizeTemplateToken()) && strings.Contains(labelTemplate, NoLib.NormalizeTemplateToken())
+	hasNoLib := strings.Contains(fileTemplate, NoLibFlag.NormalizeTemplateToken()) && strings.Contains(labelTemplate, NoLibFlag.NormalizeTemplateToken())
 
 	return &NameTemplate{
 		FileTemplate:  fileTemplate,

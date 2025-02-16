@@ -23,6 +23,8 @@ func (e ErrInvalidTokenValue) Error() string {
 var FilePrefix = "@file-"
 
 type ValidToken string
+type BuildTypeToken ValidToken
+type FlagToken ValidToken
 
 const (
 	// Simple tokens
@@ -50,27 +52,30 @@ const (
 	GameType           ValidToken = "game-type"
 	ReleaseType        ValidToken = "release-type"
 
+	AlphaFlag   FlagToken = "alpha"
+	BetaFlag    FlagToken = "beta"
+	NoLibFlag   FlagToken = "nolib"
+	ClassicFlag FlagToken = "classic"
 	// BuildType tokens
-	Alpha          ValidToken = "alpha"
-	Beta           ValidToken = "beta"
-	Classic        ValidToken = "classic"
-	Debug          ValidToken = "debug"
-	DoNotPackage   ValidToken = "do-not-package"
-	NoLibStrip     ValidToken = "no-lib-strip"
-	NoLib          ValidToken = "nolib"
-	Retail         ValidToken = "retail"
-	VersionRetail  ValidToken = "version-retail"
-	VersionClassic ValidToken = "version-classic"
-	VersionBcc     ValidToken = "version-bcc"
-	VersionWrath   ValidToken = "version-wrath"
-	VersionCata    ValidToken = "version-cata"
-	VersionMop     ValidToken = "version-mop" // Just guessing from here on
-	VersionWod     ValidToken = "version-wod"
-	VersionLegion  ValidToken = "version-legion"
-	VersionBfa     ValidToken = "version-bfa"
-	VersionSl      ValidToken = "version-sl"
-	VersionDf      ValidToken = "version-df"
-	VersionTWW     ValidToken = "version-tww"
+	Alpha          BuildTypeToken = "alpha"
+	Beta           BuildTypeToken = "beta"
+	Classic        BuildTypeToken = "classic"
+	Debug          BuildTypeToken = "debug"
+	DoNotPackage   BuildTypeToken = "do-not-package"
+	NoLibStrip     BuildTypeToken = "no-lib-strip"
+	Retail         BuildTypeToken = "retail"
+	VersionRetail  BuildTypeToken = "version-retail"
+	VersionClassic BuildTypeToken = "version-classic"
+	VersionBcc     BuildTypeToken = "version-bcc"
+	VersionWrath   BuildTypeToken = "version-wrath"
+	VersionCata    BuildTypeToken = "version-cata"
+	VersionMop     BuildTypeToken = "version-mop" // Just guessing from here on
+	VersionWod     BuildTypeToken = "version-wod"
+	VersionLegion  BuildTypeToken = "version-legion"
+	VersionBfa     BuildTypeToken = "version-bfa"
+	VersionSl      BuildTypeToken = "version-sl"
+	VersionDf      BuildTypeToken = "version-df"
+	VersionTWW     BuildTypeToken = "version-tww"
 )
 
 var fileTokens = []ValidToken{
@@ -102,7 +107,7 @@ var buildTokens = []ValidToken{
 	BuildYear,
 }
 
-var buildTypeTokens = []ValidToken{
+var buildTypeTokens = []BuildTypeToken{
 	Alpha,
 	Debug,
 	DoNotPackage,
@@ -136,16 +141,47 @@ func uniqueTokens(slice []ValidToken) []ValidToken {
 
 var allTokens = uniqueTokens(
 	slices.Concat(
-		fileTokens, projectTokens, buildTokens, buildTypeTokens, allTemplateTokens, allTemplateFlags,
+		fileTokens, projectTokens, buildTokens, allTemplateTokens,
 	),
 )
 
-func IsValidToken(token ValidToken) bool {
-	return slices.Contains(allTokens, token)
+var allFlags = []FlagToken{
+	AlphaFlag,
+	BetaFlag,
+	NoLibFlag,
+	ClassicFlag,
+}
+
+func IsValidToken(token string) bool {
+	if token == "" {
+		return false
+	}
+
+	return slices.Contains(allTokens, ValidToken(token)) || slices.Contains(buildTypeTokens, BuildTypeToken(token))
 }
 
 func (token ValidToken) NormalizeToken() string {
 	return fmt.Sprintf("@%s@", token)
+}
+
+func (token BuildTypeToken) NormalizeToken() string {
+	return fmt.Sprintf("@%s@", token)
+}
+
+type BuildTypeTokenVariants struct {
+	Standard    string
+	StandardEnd string
+	Negative    string
+	NegativeEnd string
+}
+
+func (token BuildTypeToken) GetVariants() BuildTypeTokenVariants {
+	return BuildTypeTokenVariants{
+		Standard:    string(token),
+		StandardEnd: "end-" + string(token),
+		Negative:    "non-" + string(token),
+		NegativeEnd: "end-non-" + string(token),
+	}
 }
 
 type TokenType int
@@ -171,11 +207,21 @@ func (s SimpleTokenMap) String() string {
 	return str.String()
 }
 
-type BuildTypeTokenMap map[ValidToken]bool
+type BuildTypeTokenMap map[BuildTypeToken]bool
 
-func (b BuildTypeTokenMap) Add(token ValidToken, value bool) {
+func (b BuildTypeTokenMap) Add(token BuildTypeToken, value bool) {
 	b[token] = value
 }
+
+type NormalizedBuildTypeToken struct {
+	Normalized       string
+	NormalizedEnd    string
+	NormalizedNeg    string
+	NormalizedNegEnd string
+	Value            bool
+}
+
+type NormalizedBuildTypeTokenMap map[BuildTypeToken]NormalizedBuildTypeToken
 
 type NormalizedSimpleToken struct {
 	Normalized string

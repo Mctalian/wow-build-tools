@@ -98,9 +98,10 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `@build-timestamp@`
 - [ ] Handle `@localization@` token replacement
 - [ ] Handle build-type conditional blocks of code through tokens:
-  - [ ] `@alpha@`
-  - [ ] `@debug@`
-  - [ ] `@do-not-package@`
+  - [x] `@alpha@`
+  - [x] `@beta@`
+  - [x] `@debug@`
+  - [x] `@do-not-package@`
   - [ ] `@no-lib-strip@`
   - [ ] `@retail@`
   - [ ] `@version-retail@`
@@ -130,10 +131,10 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `{project-revision}`
   - [ ] `{game-type}`
   - [ ] `{release-type}`
-  - [ ] `{alpha}`
-  - [ ] `{beta}`
+  - [x] `{alpha}`
+  - [x] `{beta}`
   - [x] `{nolib}`
-  - [ ] `{classic}`
+  - [x] `{classic}`
 - [ ] Handle tokenized naming for the release label (when uploaded to CurseForge, WoWInterface, etc.)
   - [x] `{package-name}`
   - [x] `{project-version}`
@@ -146,10 +147,10 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `{project-revision}`
   - [ ] `{game-type}`
   - [ ] `{release-type}`
-  - [ ] `{alpha}`
-  - [ ] `{beta}`
+  - [x] `{alpha}`
+  - [x] `{beta}`
   - [x] `{nolib}`
-  - [ ] `{classic}`
+  - [x] `{classic}`
 - [ ] Generate a changelog
   - [x] Git
   - [ ] SVN

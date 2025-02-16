@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,7 +51,6 @@ var buildCmd = &cobra.Command{
 			return
 		}
 
-		classic := false
 		var templateTokens *tokens.NameTemplate
 		if f.NameTemplate == "help" {
 			logger.Info("%s", tokens.NameTemplateUsageInfo())
@@ -204,10 +204,11 @@ var buildCmd = &cobra.Command{
 		}
 		github.Output(string(tokens.PackageName), tokenMap[tokens.PackageName])
 
-		if classic {
-			tokenMap[tokens.Classic] = "classic"
-		} else {
-			tokenMap[tokens.Classic] = ""
+		flags := tokens.FlagMap{
+			tokens.NoLibFlag:   "",
+			tokens.AlphaFlag:   "",
+			tokens.BetaFlag:    "",
+			tokens.ClassicFlag: "",
 		}
 
 		preGetInjectionValues := time.Now()
@@ -216,8 +217,60 @@ var buildCmd = &cobra.Command{
 			os.Exit(1)
 			return
 		}
+
+		bTTM := tokens.BuildTypeTokenMap{
+			tokens.Alpha:         false,
+			tokens.Beta:          false,
+			tokens.Classic:       false,
+			tokens.Debug:         false,
+			tokens.Retail:        false,
+			tokens.VersionRetail: false,
+			tokens.VersionBcc:    false,
+			tokens.VersionWrath:  false,
+			tokens.VersionCata:   false,
+		}
+		tag := vR.GetCurrentTag()
+		if tag != "" {
+			if strings.Contains(tag, "alpha") {
+				flags[tokens.AlphaFlag] = "-alpha"
+				bTTM[tokens.Alpha] = true
+				bTTM[tokens.Beta] = false
+			} else if strings.Contains(tag, "beta") {
+				flags[tokens.BetaFlag] = "-beta"
+				bTTM[tokens.Alpha] = false
+				bTTM[tokens.Beta] = true
+			} else {
+				bTTM[tokens.Alpha] = false
+				bTTM[tokens.Beta] = false
+			}
+		} else {
+			flags[tokens.AlphaFlag] = "-alpha"
+			bTTM[tokens.Alpha] = true
+			bTTM[tokens.Beta] = false
+		}
+		if f.GameVersion != "" {
+			switch f.GameVersion {
+			case "retail":
+				bTTM[tokens.Retail] = true
+				bTTM[tokens.VersionRetail] = true
+			case "classic":
+				flags[tokens.ClassicFlag] = "-classic"
+				bTTM[tokens.Classic] = true
+			case "bcc":
+				bTTM[tokens.VersionBcc] = true
+			case "wrath":
+				bTTM[tokens.VersionWrath] = true
+			case "cata":
+				bTTM[tokens.VersionCata] = true
+			default:
+				bTTM[tokens.Retail] = true
+			}
+		} else if len(f.GameVerList) > 0 {
+			// TODO: Handle multiple game versions
+		}
+
 		logger.Verbose("%s", tokenMap.String())
-		i, err := injector.NewInjector(tokenMap, vR, packageDir)
+		i, err := injector.NewInjector(tokenMap, vR, packageDir, bTTM)
 		logger.Timing("Getting Injection Values took %s", time.Since(preGetInjectionValues))
 		if err != nil {
 			logger.Error("Injector Error: %v", err)
@@ -277,9 +330,11 @@ var buildCmd = &cobra.Command{
 			}
 			var zipWGroup sync.WaitGroup
 			zipErrChan := make(chan error, zipsToCreate)
-			zipFileName := templateTokens.GetFileName(&tokenMap, false)
+
+			zipFileName := templateTokens.GetFileName(&tokenMap, flags)
 			zipFilePath := f.ReleaseDir + "/" + zipFileName + ".zip"
-			noLibFileName := templateTokens.GetFileName(&tokenMap, true)
+			flags[tokens.NoLibFlag] = "-nolib"
+			noLibFileName := templateTokens.GetFileName(&tokenMap, flags)
 			z := zipper.NewZipper(packageDir)
 			zipWGroup.Add(1)
 			go func() {
@@ -294,7 +349,7 @@ var buildCmd = &cobra.Command{
 			}()
 
 			if isNoLib && !templateTokens.HasNoLib {
-				logger.Warn("Provided file and/or label template did not contain %s, but no-lib package requested. Skipping no-lib package since the zip name will not be unique.", tokens.NoLib.NormalizeTemplateToken())
+				logger.Warn("Provided file and/or label template did not contain %s, but no-lib package requested. Skipping no-lib package since the zip name will not be unique.", tokens.NoLibFlag.NormalizeTemplateToken())
 				isNoLib = false
 			}
 
@@ -325,11 +380,12 @@ var buildCmd = &cobra.Command{
 					return
 				}
 			}
+			flags[tokens.NoLibFlag] = ""
 
 			if !f.SkipUpload {
 				curseArgs := upload.UploadCurseArgs{
 					ZipPath:   zipFilePath,
-					FileLabel: templateTokens.GetLabel(&tokenMap, false),
+					FileLabel: templateTokens.GetLabel(&tokenMap, flags),
 					TocFiles:  tocFiles,
 					PkgMeta:   pkgMeta,
 					Changelog: cl,

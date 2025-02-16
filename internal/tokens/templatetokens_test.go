@@ -9,7 +9,7 @@ func TestGetFileName(t *testing.T) {
 		name         string
 		template     *NameTemplate
 		stm          *SimpleTokenMap
-		noLib        bool
+		flags        FlagMap
 		expectedName string
 	}{
 		{
@@ -20,9 +20,11 @@ func TestGetFileName(t *testing.T) {
 			stm: &SimpleTokenMap{
 				PackageName:    "TestPackage",
 				ProjectVersion: "1.0.0",
-				Classic:        "-classic",
 			},
-			noLib:        true,
+			flags: FlagMap{
+				NoLibFlag:   "-nolib",
+				ClassicFlag: "-classic",
+			},
 			expectedName: "TestPackage-1.0.0-nolib-classic",
 		},
 		{
@@ -33,9 +35,11 @@ func TestGetFileName(t *testing.T) {
 			stm: &SimpleTokenMap{
 				PackageName:    "TestPackage",
 				ProjectVersion: "1.0.0",
-				Classic:        "-classic",
 			},
-			noLib:        false,
+			flags: FlagMap{
+				NoLibFlag:   "",
+				ClassicFlag: "-classic",
+			},
 			expectedName: "TestPackage-1.0.0-classic",
 		},
 		{
@@ -46,16 +50,18 @@ func TestGetFileName(t *testing.T) {
 			stm: &SimpleTokenMap{
 				PackageName:    "TestPackage",
 				ProjectVersion: "1.0.0",
-				Classic:        "-classic",
 			},
-			noLib:        true,
+			flags: FlagMap{
+				NoLibFlag:   "-nolib",
+				ClassicFlag: "-classic",
+			},
 			expectedName: "TestPackage-1.0.0-classic",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.template.GetFileName(tt.stm, tt.noLib)
+			got := tt.template.GetFileName(tt.stm, tt.flags)
 			if got != tt.expectedName {
 				t.Errorf("GetFileName() = %v, want %v", got, tt.expectedName)
 			}
@@ -127,7 +133,7 @@ func TestGetLabel(t *testing.T) {
 		name          string
 		template      *NameTemplate
 		stm           *SimpleTokenMap
-		noLib         bool
+		flags         FlagMap
 		expectedLabel string
 	}{
 		{
@@ -137,9 +143,11 @@ func TestGetLabel(t *testing.T) {
 			},
 			stm: &SimpleTokenMap{
 				ProjectVersion: "1.0.0",
-				Classic:        "-classic",
 			},
-			noLib:         true,
+			flags: FlagMap{
+				NoLibFlag:   "-nolib",
+				ClassicFlag: "-classic",
+			},
 			expectedLabel: "1.0.0-nolib-classic",
 		},
 		{
@@ -149,9 +157,11 @@ func TestGetLabel(t *testing.T) {
 			},
 			stm: &SimpleTokenMap{
 				ProjectVersion: "1.0.0",
-				Classic:        "-classic",
 			},
-			noLib:         false,
+			flags: FlagMap{
+				NoLibFlag:   "",
+				ClassicFlag: "-classic",
+			},
 			expectedLabel: "1.0.0-classic",
 		},
 		{
@@ -161,16 +171,18 @@ func TestGetLabel(t *testing.T) {
 			},
 			stm: &SimpleTokenMap{
 				ProjectVersion: "1.0.0",
-				Classic:        "-classic",
 			},
-			noLib:         true,
+			flags: FlagMap{
+				NoLibFlag:   "-nolib",
+				ClassicFlag: "-classic",
+			},
 			expectedLabel: "1.0.0-classic",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.template.GetLabel(tt.stm, tt.noLib)
+			got := tt.template.GetLabel(tt.stm, tt.flags)
 			if got != tt.expectedLabel {
 				t.Errorf("GetLabel() = %v, want %v", got, tt.expectedLabel)
 			}

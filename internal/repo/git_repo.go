@@ -35,6 +35,18 @@ type GitRepo struct {
 	previousVersionHash string
 }
 
+func (gR *GitRepo) GetCurrentTag() string {
+	return gR.CurrentTag
+}
+
+func (gR *GitRepo) GetPreviousVersion() string {
+	return gR.PreviousVersion
+}
+
+func (gR *GitRepo) GetProjectVersion() string {
+	return gR.ProjectVersion
+}
+
 func (gR *GitRepo) GetRepoRoot() string {
 	return gR.repo.GetRepoRoot()
 }
