@@ -4,7 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/McTalian/wow-build-tools/internal/github"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -62,9 +64,15 @@ func TestGetRepoCachePath(t *testing.T) {
 		URL: "https://github.com/user/repo",
 		Tag: "v1.0.0",
 	}
-	cachePath, err := os.UserHomeDir()
-	assert.NoError(t, err)
-	expected := cachePath + "/.wow-build-tools/.cache/externals/https:__github.com_user_repo_v1.0.0" // Adjust this based on your cache directory
+	var cachePath string
+	var err error
+	if github.IsGitHubAction() {
+		cachePath = os.Getenv("RUNNER_TEMP")
+	} else {
+		cachePath, err = os.UserHomeDir()
+		require.NoError(t, err)
+	}
+	expected := cachePath + "/wow-build-tools/.cache/externals/https:__github.com_user_repo_v1.0.0"
 
 	if got := e.GetRepoCachePath(); got != expected {
 		t.Errorf("GetRepoCachePath() = %v, want %v", got, expected)

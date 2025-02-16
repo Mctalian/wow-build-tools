@@ -48,23 +48,21 @@ jobs:
 
       - name: Run tests
         run: |
-          echo "Installing go-test-report..."
-          go install github.com/vakenbolt/go-test-report@v0.9.3
           echo "Creating temp directories..."
           mkdir -p ./.coverage
-          mkdir -p ./.test-results
+          # mkdir -p ./.test-results
           echo "Running tests..."
-          go test -tags='' -json ./... -cover -coverpkg=./... -coverprofile="./.coverage/.cover.out" | go-test-report -o ./.test-results/report.html -g 8
+          go test -tags='' -v ./... -cover -coverpkg=./... -coverprofile="./.coverage/.cover.out"
           echo "Generating coverage report..."
           go tool cover -html="./.coverage/.cover.out" -o "./.coverage/report.html"
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: ./.test-results
-          include-hidden-files: true
+      # - name: Upload test results
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: test-results
+      #     path: ./.test-results
+      #     include-hidden-files: true
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
