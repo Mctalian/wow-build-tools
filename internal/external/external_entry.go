@@ -159,13 +159,12 @@ func (e *ExternalEntry) handleCurseUrl() {
 				if len(svnPathParts) > 1 {
 					e.Path = svnPathParts[1] // Gets "path/to/addon"
 				}
-			} else if strings.HasPrefix(svnRoot, "tags/") {
+			} else if svnRoot == "tags" {
 				e.EType = Svn
 
 				// Extract the tag name
-				tagParts := strings.SplitN(svnRoot, "/", 2)
-				if len(tagParts) > 1 {
-					e.Tag = tagParts[1] // Gets "<tag>"
+				if len(svnPathParts) > 1 {
+					e.Tag = svnPathParts[1] // Gets "<tag>"
 				}
 
 				// Reconstruct the SVN trunk path (removing /tags/X)

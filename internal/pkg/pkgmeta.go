@@ -242,6 +242,7 @@ func Parse(args *ParseArgs) (*PkgMeta, error) {
 		}
 	} else {
 		ymlFile := filepath.Join(pkgDir, "pkgmeta.yml")
+		yamlFile := filepath.Join(pkgDir, "pkgmeta.yaml")
 		pkgFile := filepath.Join(pkgDir, ".pkgmeta")
 		subPath := strings.Split(pkgDir, "/")[len(strings.Split(pkgDir, "/"))-1]
 		if args.LogGroup != nil {
@@ -251,6 +252,8 @@ func Parse(args *ParseArgs) (*PkgMeta, error) {
 		}
 		if _, err := os.Stat(ymlFile); err == nil {
 			pkgmetaFile = ymlFile
+		} else if _, err := os.Stat(yamlFile); err == nil {
+			pkgmetaFile = yamlFile
 		} else if _, err := os.Stat(pkgFile); err == nil {
 			pkgmetaFile = pkgFile
 		} else {

@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,8 +32,8 @@ import (
 var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Builds a World of Warcraft addon",
-	Long:  `This command packages the addon as specified via a configuration file.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Long:  `This command packages the addon as specified via a pkgmeta file.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 		if LevelVerbose {
 			logger.SetLogLevel(logger.VERBOSE)
@@ -47,20 +46,18 @@ var buildCmd = &cobra.Command{
 		err := f.ValidateInputArgs()
 		if err != nil {
 			logger.Error("Error validating input arguments: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		var templateTokens *tokens.NameTemplate
 		if f.NameTemplate == "help" {
 			logger.Info("%s", tokens.NameTemplateUsageInfo())
-			return
+			return nil
 		} else {
 			templateTokens, err = tokens.NewNameTemplate(f.NameTemplate)
 			if err != nil {
 				logger.Error("Error parsing name template: %v", err)
-				os.Exit(1)
-				return
+				return err
 			}
 		}
 
@@ -79,15 +76,13 @@ var buildCmd = &cobra.Command{
 
 		if _, err := cachedir.Create(); err != nil {
 			logger.Error("Cache Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		tocFilePaths, err := toc.FindTocFiles(topDir)
 		if err != nil {
 			logger.Error("TOC Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		logger.Verbose("TOC Files: %v", tocFilePaths)
@@ -101,8 +96,7 @@ var buildCmd = &cobra.Command{
 			t, err := toc.NewToc(tocFilePath)
 			if err != nil {
 				logger.Error("TOC Error: %v", err)
-				os.Exit(1)
-				return
+				return err
 			}
 			tocFiles = append(tocFiles, t)
 
@@ -112,8 +106,7 @@ var buildCmd = &cobra.Command{
 		r, err := repo.NewRepo(topDir)
 		if err != nil {
 			logger.Error("Repo Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		logger.Debug("%s", r.String())
@@ -126,8 +119,7 @@ var buildCmd = &cobra.Command{
 			vR, err = repo.NewGitRepo(r)
 			if err != nil {
 				logger.Error("GitRepo Error: %v", err)
-				os.Exit(1)
-				return
+				return err
 			}
 		case external.Svn:
 			logger.Verbose("SVN repository detected")
@@ -135,8 +127,7 @@ var buildCmd = &cobra.Command{
 			logger.Verbose("Mercurial repository detected")
 		default:
 			logger.Error("Unknown repository type")
-			os.Exit(1)
-			return
+			return err
 		}
 		logger.Timing("Creating VcsRepo took %s", time.Since(preVr))
 
@@ -147,14 +138,12 @@ var buildCmd = &cobra.Command{
 		pkgMeta, err := pkg.Parse(&parseArgs)
 		if err != nil {
 			logger.Error("Pkgmeta Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		if pkgMeta.PackageAs != "" && projectName != pkgMeta.PackageAs {
-			logger.Error("Project name (%s) from TOC filename(s) does not match `package-as` name in pkgmeta file (%s)", projectName, pkgMeta.PackageAs)
-			os.Exit(1)
-			return
+			err = fmt.Errorf("Project name (%s) from TOC filename(s) does not match `package-as` name in pkgmeta file (%s)", projectName, pkgMeta.PackageAs)
+			return err
 		}
 
 		logger.Verbose("%s", pkgMeta.String())
@@ -172,15 +161,13 @@ var buildCmd = &cobra.Command{
 		logger.Debug("Package Directory: %s", packageDir)
 		if err != nil {
 			logger.Error("Error preparing package directory: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		err = license.EnsureLicensePresent(pkgMeta.License, topDir, packageDir, f.CurseId)
 		if err != nil {
 			logger.Error("License Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		if !f.SkipCopy {
@@ -188,8 +175,7 @@ var buildCmd = &cobra.Command{
 			err = projCopy.CopyToPackageDir(copyLogGroup)
 			if err != nil {
 				logger.Error("Copy Error: %v", err)
-				os.Exit(1)
-				return
+				return err
 			}
 		}
 		copyLogGroup.Flush(true)
@@ -214,8 +200,7 @@ var buildCmd = &cobra.Command{
 		preGetInjectionValues := time.Now()
 		if err = vR.GetInjectionValues(&tokenMap); err != nil {
 			logger.Error("GetInjectionValues Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		bTTM := tokens.BuildTypeTokenMap{
@@ -274,8 +259,7 @@ var buildCmd = &cobra.Command{
 		logger.Timing("Getting Injection Values took %s", time.Since(preGetInjectionValues))
 		if err != nil {
 			logger.Error("Injector Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		var changelogTitle string
@@ -287,29 +271,25 @@ var buildCmd = &cobra.Command{
 		cl, err := changelog.NewChangelog(vR, pkgMeta, changelogTitle, packageDir, topDir)
 		if err != nil {
 			logger.Error("Changelog Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 		err = cl.GetChangelog()
 		if err != nil {
 			logger.Error("GetChangelog Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		err = i.Execute()
 		if err != nil {
 			logger.Error("Injector Execute Error: %v", err)
-			os.Exit(1)
-			return
+			return err
 		}
 
 		if !f.SkipExternals {
 			err = pkgMeta.FetchExternals(packageDir)
 			if err != nil {
 				logger.Error("Fetch Externals Error: %v", err)
-				os.Exit(1)
-				return
+				return err
 			}
 		}
 
@@ -320,8 +300,7 @@ var buildCmd = &cobra.Command{
 		if !f.SkipZip {
 			if err != nil {
 				logger.Error("Changelog Error: %v", err)
-				os.Exit(1)
-				return
+				return err
 			}
 
 			zipsToCreate := 1
@@ -376,8 +355,7 @@ var buildCmd = &cobra.Command{
 			for err := range zipErrChan {
 				if err != nil {
 					logger.Error("Zip Error: %v", err)
-					os.Exit(1)
-					return
+					return err
 				}
 			}
 			flags[tokens.NoLibFlag] = ""
@@ -392,8 +370,7 @@ var buildCmd = &cobra.Command{
 				}
 				if err = upload.UploadToCurse(curseArgs); err != nil {
 					logger.Error("Curse Upload Error: %v", err)
-					os.Exit(1)
-					return
+					return err
 				}
 			}
 		}
@@ -404,29 +381,32 @@ var buildCmd = &cobra.Command{
 
 		fmt.Println("")
 		logger.Info("✨ Successfully packaged %s in ⏱️  %s", projectName, time.Since(start))
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(buildCmd)
 
-	buildCmd.Flags().BoolVarP(&f.SkipCopy, "skipCopy", "c", false, "Skip copying the files to the output directory.")
-	buildCmd.Flags().BoolVarP(&f.SkipUpload, "skipUpload", "d", false, "Skip uploading.")
-	buildCmd.Flags().BoolVarP(&f.SkipExternals, "skipExternals", "e", false, "Skip fetching externals.")
-	buildCmd.Flags().BoolVarP(&f.ForceExternals, "forceExternals", "E", false, "Force fetching externals, bypassing the cache.")
-	buildCmd.Flags().BoolVarP(&f.SkipLocalization, "skipLocalization", "l", false, "Skip @localization@ keyword replacement.")
-	buildCmd.Flags().BoolVarP(&f.OnlyLocalization, "onlyLocalization", "L", false, "Only do @localization@ keyword replacement (skip upload to CurseForge).")
-	buildCmd.Flags().BoolVarP(&f.KeepPackageDir, "keepPackageDir", "o", false, "Keep existing package directory, overwriting its contents.")
-	buildCmd.Flags().BoolVarP(&f.CreateNoLib, "createNoLib", "s", false, "Create a stripped-down \"nolib\" package.")
-	buildCmd.Flags().BoolVarP(&f.SplitToc, "splitToc", "S", false, "Create a package supporting multiple game types from a single TOC file.")
-	buildCmd.Flags().BoolVarP(&f.UnixLineEndings, "unixLineEndings", "u", false, "Use Unix line endings in TOC and XML files.")
-	buildCmd.Flags().BoolVarP(&f.SkipZip, "skipZip", "z", false, "Skip zipping the package.")
+	buildCmd.Flags().SortFlags = false
+
 	buildCmd.Flags().StringVarP(&f.TopDir, "topDir", "t", ".", "The top level directory of the addon")
 	buildCmd.Flags().StringVarP(&f.ReleaseDir, "releaseDir", "r", f.TopDir+"/.release", "The directory to output the release files.")
+	buildCmd.Flags().StringVarP(&f.PkgmetaFile, "pkgmetaFile", "m", "", "Set the pkgmeta file to use. (Defaults to {topDir}/pkgmeta.yml, {topDir}/pkgmeta.yaml, or {topDir}/.pkgmeta if one exists.)")
+	buildCmd.Flags().BoolVarP(&f.KeepPackageDir, "keepPackageDir", "o", false, "Keep existing package directory, overwriting its contents.")
+	buildCmd.Flags().BoolVarP(&f.CreateNoLib, "createNoLib", "s", false, "Create a stripped-down \"nolib\" package.")
 	buildCmd.Flags().StringVarP(&f.CurseId, "curseId", "p", "", "Set the CurseForge project ID for localization and uploading. (Use 0 to unset the TOC value)")
 	buildCmd.Flags().StringVarP(&f.WowiId, "wowiId", "w", "", "Set the WoWInterface project ID for uploading. (Use 0 to unset the TOC value)")
 	buildCmd.Flags().StringVarP(&f.WagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
-	buildCmd.Flags().StringVarP(&f.GameVersion, "gameVersion", "g", "", "Set the game version to use for uploading.")
-	buildCmd.Flags().StringVarP(&f.PkgmetaFile, "pkgmetaFile", "m", "", "Set the pkgmeta file to use.")
+	buildCmd.Flags().BoolVarP(&f.SkipCopy, "skipCopy", "c", false, "Skip copying the files to the output directory.")
+	buildCmd.Flags().BoolVarP(&f.SkipExternals, "skipExternals", "e", false, "Skip fetching externals.")
+	buildCmd.Flags().BoolVarP(&f.ForceExternals, "forceExternals", "E", false, "Force fetching externals, bypassing the cache.")
+	buildCmd.Flags().BoolVarP(&f.SkipZip, "skipZip", "z", false, "Skip zipping the package (and uploading).")
+	buildCmd.Flags().BoolVarP(&f.SkipUpload, "skipUpload", "d", false, "Skip uploading.")
 	buildCmd.Flags().StringVarP(&f.NameTemplate, "nameTemplate", "n", "", "Set the name template to use for the release file. Use \"-n help\" for more info.")
+	buildCmd.Flags().BoolVarP(&f.SkipLocalization, "skipLocalization", "l", false, "Skip @localization@ keyword replacement.")
+	buildCmd.Flags().BoolVarP(&f.OnlyLocalization, "onlyLocalization", "L", false, "Only do @localization@ keyword replacement (skip upload to CurseForge).")
+	buildCmd.Flags().BoolVarP(&f.SplitToc, "splitToc", "S", false, "Create a package supporting multiple game types from a single TOC file.")
+	buildCmd.Flags().BoolVarP(&f.UnixLineEndings, "unixLineEndings", "u", false, "Use Unix line endings in TOC and XML files.")
+	buildCmd.Flags().StringVarP(&f.GameVersion, "gameVersion", "g", "", "Set the game version to use for uploading.")
 }

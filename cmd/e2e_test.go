@@ -1,6 +1,7 @@
-package test_e2e
+package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -8,15 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/McTalian/wow-build-tools/cmd"
 	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	legacyTool     = "../bin/old_tool" // Path to the existing tool
-	integrationDir = "integration_tests"
+	legacyTool = "../bin/old_tool" // Path to the existing tool
+	e2eDir     = "test_e2e"
 )
 
 func TestAddonProcessing(t *testing.T) {
@@ -218,7 +218,8 @@ func TestAddonProcessing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempNewOutput, err := filepath.Abs(filepath.Join(".", tt.testDir, ".release"))
+			tempNewOutput, err := filepath.Abs(filepath.Join(".", e2eDir, tt.testDir, ".release"))
+			testDir := filepath.Join(".", e2eDir, tt.testDir)
 			if err != nil {
 				t.Fatalf("Failed to get absolute path: %v", err)
 			}
@@ -231,7 +232,7 @@ func TestAddonProcessing(t *testing.T) {
 			tt.arrange(t)
 
 			// Run the new CLI directly
-			runNewCLI(tt.testDir, tempNewOutput)
+			runNewCLI(t, testDir, tempNewOutput)
 
 			tt.assertions(t, tempNewOutput)
 		})
@@ -240,10 +241,7 @@ func TestAddonProcessing(t *testing.T) {
 
 var argsMutex sync.Mutex
 
-func runNewCLI(input, output string) {
-	// Set test arguments as if they were passed via CLI
-	os.Args = []string{"wow-build-tools", "build", "-t", input, "-r", output}
-
+func runNewCLI(t *testing.T, input, output string) {
 	// Capture stdout/stderr if needed
 	oldStdout, oldStderr := os.Stdout, os.Stderr
 	defer func() { os.Stdout, os.Stderr = oldStdout, oldStderr }() // Restore after execution
@@ -255,7 +253,12 @@ func runNewCLI(input, output string) {
 	// Call the CLI’s main function directly
 	// cmd.GetRootCmd().SetArgs(testArgs)
 	logger.InitLogger()
-	cmd.Execute()
+	rootCmd.SetArgs([]string{"build", "-t", input, "-r", output})
+	err := rootCmd.Execute()
+	if err != nil {
+		assert.NoError(t, fmt.Errorf("failed to run new CLI: %v", err))
+		t.FailNow()
+	}
 
 	// Close the write ends of the pipes
 	wOut.Close()

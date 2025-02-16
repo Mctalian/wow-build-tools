@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/repo"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
@@ -115,16 +116,18 @@ func TestInjector_FindAndReplaceInFile(t *testing.T) {
 
 func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 	tests := []struct {
-		name      string
-		extension string
-		contents  string
-		bTTM      tokens.BuildTypeTokenMap
-		expected  string
+		name            string
+		unixLineEndings bool
+		extension       string
+		contents        string
+		bTTM            tokens.BuildTypeTokenMap
+		expected        string
 	}{
 		{
-			name:      "Alpha build type lua",
-			extension: ".lua",
-			contents:  "--@alpha@\ntest\n--@end-alpha@\n\n--@beta@\ntest\n--@end-beta@\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
+			name:            "Alpha build type lua",
+			extension:       ".lua",
+			unixLineEndings: true,
+			contents:        "--@alpha@\ntest\n--@end-alpha@\n\n--@beta@\ntest\n--@end-beta@\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
 			bTTM: tokens.BuildTypeTokenMap{
 				tokens.Alpha:         true,
 				tokens.Beta:          false,
@@ -138,9 +141,10 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 			expected: "--@alpha@\ntest\n--@end-alpha@\n\n--[===[@beta@\ntest\n--@end-beta@]===]\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
 		},
 		{
-			name:      "Beta build type lua",
-			extension: ".lua",
-			contents:  "--@alpha@\ntest\n--@end-alpha@\n\n--@beta@\ntest\n--@end-beta@\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
+			name:            "Beta build type lua",
+			extension:       ".lua",
+			unixLineEndings: true,
+			contents:        "--@alpha@\ntest\n--@end-alpha@\n\n--@beta@\ntest\n--@end-beta@\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
 			bTTM: tokens.BuildTypeTokenMap{
 				tokens.Alpha:         false,
 				tokens.Beta:          true,
@@ -154,9 +158,10 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 			expected: "--[===[@alpha@\ntest\n--@end-alpha@]===]\n\n--@beta@\ntest\n--@end-beta@\n\n--@non-alpha@\ntest\n--@end-non-alpha@",
 		},
 		{
-			name:      "Debug build type lua",
-			extension: ".lua",
-			contents:  "--@debug@\ntest\n--@end-debug@\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
+			name:            "Debug build type lua",
+			extension:       ".lua",
+			unixLineEndings: true,
+			contents:        "--@debug@\ntest\n--@end-debug@\n\n--[===[@non-alpha@\ntest\n--@end-non-alpha@]===]",
 			bTTM: tokens.BuildTypeTokenMap{
 				tokens.Alpha:         false,
 				tokens.Beta:          false,
@@ -184,7 +189,7 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 				tokens.VersionWrath:  false,
 				tokens.VersionCata:   false,
 			},
-			expected: "<!--@alpha@-->\n<test>\n</test>\n<!--@end-alpha@-->\n\n<!--@beta@\n<test>\n</test>\n@end-beta@-->\n\n<!--@non-alpha@\n<test>\n</test>\n@end-non-alpha@-->\n",
+			expected: "<!--@alpha@-->\r\n<test>\r\n</test>\r\n<!--@end-alpha@-->\r\n\r\n<!--@beta@\r\n<test>\r\n</test>\r\n@end-beta@-->\r\n\r\n<!--@non-alpha@\r\n<test>\r\n</test>\r\n@end-non-alpha@-->\r\n",
 		},
 		{
 			name:      "Beta build type xml",
@@ -200,7 +205,7 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 				tokens.VersionWrath:  false,
 				tokens.VersionCata:   false,
 			},
-			expected: "<!--@alpha@\n<test>\n</test>\n@end-alpha@-->\n\n<!--@beta@-->\n<test>\n</test>\n<!--@end-beta@-->\n\n<!--@non-alpha@-->\n<test>\n</test>\n<!--@end-non-alpha@-->\n",
+			expected: "<!--@alpha@\r\n<test>\r\n</test>\r\n@end-alpha@-->\r\n\r\n<!--@beta@-->\r\n<test>\r\n</test>\r\n<!--@end-beta@-->\r\n\r\n<!--@non-alpha@-->\r\n<test>\r\n</test>\r\n<!--@end-non-alpha@-->\r\n",
 		},
 		{
 			name:      "Alpha build type toc",
@@ -216,7 +221,7 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 				tokens.VersionWrath:  false,
 				tokens.VersionCata:   false,
 			},
-			expected: "#@alpha@\ntest\n#@end-alpha@\n\n#@beta@\n#test\n#@end-beta@\n\n#@non-alpha@\n#test\n#@end-non-alpha@",
+			expected: "#@alpha@\r\ntest\r\n#@end-alpha@\r\n\r\n#@beta@\r\n#test\r\n#@end-beta@\r\n\r\n#@non-alpha@\r\n#test\r\n#@end-non-alpha@",
 		},
 		{
 			name:      "Beta build type toc",
@@ -232,19 +237,25 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 				tokens.VersionWrath:  false,
 				tokens.VersionCata:   false,
 			},
-			expected: "#@alpha@\n#test\n#@end-alpha@\n\n#@beta@\ntest\n#@end-beta@\n\n#@non-alpha@\ntest\n#@end-non-alpha@",
+			expected: "#@alpha@\r\n#test\r\n#@end-alpha@\r\n\r\n#@beta@\r\ntest\r\n#@end-beta@\r\n\r\n#@non-alpha@\r\ntest\r\n#@end-non-alpha@",
 		},
 		{
 			name:      "Do not package",
 			extension: ".lua",
 			contents:  "--@do-not-package@\ntest\n--@end-do-not-package@\ntest\ntest\ntest\n",
 			bTTM:      tokens.BuildTypeTokenMap{},
-			expected:  "test\ntest\ntest\n",
+			expected:  "test\r\ntest\r\ntest\r\n",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.unixLineEndings {
+				cliflags.UnixLineEndings = true
+			} else {
+				cliflags.UnixLineEndings = false
+			}
+
 			f, err := os.CreateTemp(".", "file*"+tt.extension)
 			name := f.Name()
 			filePath := filepath.Join(".", name)

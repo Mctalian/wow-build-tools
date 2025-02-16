@@ -16,8 +16,11 @@ run: build
 	./$(OUTPUT_DIR)/$(BINARY_NAME)
 
 test:
-	@go test -v ./... -cover -coverpkg=./... -coverprofile="./.coverage/cover.out"
+	@mkdir -p ./.coverage
+	@mkdir -p ./.test-results
+	@go test -json ./... -cover -coverpkg=./... -coverprofile="./.coverage/cover.out" | go-test-report -o ./.test-results/report.html -g 8
 	@go tool cover -html="./.coverage/cover.out" -o "./.coverage/report.html"
+	@echo "Test report generated at ./.test-results/report.html"
 	@echo "Coverage report generated at ./.coverage/report.html"
 
 # Define the default target

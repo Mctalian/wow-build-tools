@@ -94,7 +94,7 @@ func NewRepo(topDir string) (*Repo, error) {
 			break
 		}
 
-		if iterations > 2 {
+		if iterations > 3 {
 			break
 		}
 
@@ -118,7 +118,7 @@ func NewRepo(topDir string) (*Repo, error) {
 
 		dirToCheck = filepath.Join(dirToCheck, "..")
 		iterations++
-		if iterations <= 2 {
+		if iterations <= 3 {
 			logger.Verbose("Checking for a vcs directory in: %s", dirToCheck)
 		}
 	}
