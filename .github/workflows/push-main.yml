@@ -20,6 +20,31 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+
+      - name: Go cache paths
+        id: go-cache-paths
+        run: |
+          echo "go-build=$(go env GOCACHE) >> $GITHUB_OUTPUT"
+          echo "go-mod=$(go env GOMODCACHE) >> $GITHUB_OUTPUT"
+
+      # Cache go build cache, used to speedup go test
+      - name: Go Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+
+      # Cache go mod cache, used to speedup builds
+      - name: Go Mod Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+
+      - name: Install Go dependencies
+        run: go mod download
 
       # - name: Run tests
       #   run: |
