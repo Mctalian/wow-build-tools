@@ -11,6 +11,8 @@ import (
 
 var cacheDir string
 
+var externalsPath = filepath.Join(".wow-build-tools", ".cache", "externals")
+
 // Get returns the global cache directory for external repositories.
 func Get() (string, error) {
 	if cacheDir == "" {
@@ -24,7 +26,7 @@ func Get() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to determine location for cache directory: %w", err)
 		}
-		cacheDir = filepath.Join(dir, ".wow-build-tools", ".cache", "externals")
+		cacheDir = filepath.Join(dir, externalsPath)
 	}
 	return cacheDir, nil
 }
