@@ -55,7 +55,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `-o` Keep existing package directory, overwrite contents
   - [x] `-s` Create "nolib" package
   - [ ] `-S` Split toc file for multiple game types
-  - [ ] `-u` Use Unix line-endings
+  - [x] `-u` Use Unix line-endings
   - [x] `-z` Skip zip file creation
   - [x] `-t topdir` Specify the top directory of the repository
   - [x] `-r releasedir` Specify the directory to copy files to
@@ -67,7 +67,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `-n "{template}"` Tokenized zip file and upload label names
 - [ ] Support multiple styles of toc files:
   - [ ] Single TOC and Single Game Type/Flavor
-  - [ ] Single TOC and Multiple Game Types/Flavors
+  - [x] Single TOC and Multiple Game Types/Flavors
   - [ ] Multiple TOCs per Game Type/Flavor
   - [ ] Splitting a single TOC into multiple TOCs
 - [ ] Download external dependencies (at least happy path)

@@ -41,26 +41,6 @@ func (s *SvnExternal) GetURL() string {
 	return s.metadata.URL
 }
 
-// GetTag returns the tag or revision; in SVN this might be a revision number.
-func (s *SvnExternal) GetTag() string {
-	return s.metadata.Tag
-}
-
-// GetCheckoutType returns the type of checkout; for SVN, this could simply be "svn".
-func (s *SvnExternal) GetCheckoutType() string {
-	return s.metadata.CheckoutType
-}
-
-// GetType returns the type of external; here, "svn".
-func (s *SvnExternal) GetType() string {
-	return s.metadata.EType.ToString()
-}
-
-// GetCurseSlug returns the curse slug if applicable (or an empty string).
-func (s *SvnExternal) GetCurseSlug() string {
-	return s.metadata.CurseSlug
-}
-
 type svnTagMeta struct {
 	Tag    string
 	TagUrl string

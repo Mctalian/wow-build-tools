@@ -1,11 +1,6 @@
 package external
 
 type Vcs interface {
-	GetURL() string
-	GetTag() string
-	GetCheckoutType() string
-	GetType() string
-	GetCurseSlug() string
 	Checkout() error
 }
 

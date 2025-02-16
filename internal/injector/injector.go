@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/repo"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
@@ -54,6 +55,7 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 	}
 
 	output := string(input)
+	output = strings.ReplaceAll(output, "\r\n", "\n")
 
 	if strings.Contains(output, tokens.FilePrefix) {
 		// Need to get the file info from VCS
@@ -179,6 +181,35 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 		output = strings.Join(newLines, "\n")
 	}
 
+	if !cliflags.UnixLineEndings {
+		logger.Verbose("Enforcing Windows line endings on %s", filePath)
+		output = strings.ReplaceAll(output, "\n", "\r\n")
+	}
+
+	err = os.WriteFile(filePath, []byte(output), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Injector) ensureLineEndings(filePath string) error {
+	input, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	output := string(input)
+
+	if cliflags.UnixLineEndings {
+		i.logGroup.Verbose("Enforcing unix line endings on %s", filePath)
+		output = strings.ReplaceAll(output, "\r\n", "\n")
+	} else {
+		i.logGroup.Verbose("Enforcing windows line endings on %s", filePath)
+		output = strings.ReplaceAll(output, "\n", "\r\n")
+	}
+
 	err = os.WriteFile(filePath, []byte(output), 0644)
 	if err != nil {
 		return err
@@ -207,6 +238,7 @@ func (i *Injector) Execute() error {
 		}
 
 		if !isInjectableExtension(ext) {
+			i.ensureLineEndings(path)
 			return nil
 		}
 

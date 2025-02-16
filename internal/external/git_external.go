@@ -181,26 +181,6 @@ func (e *GitExternal) getRepoCachePath() string {
 	return e.metadata.RepoCacheDir
 }
 
-func (e *GitExternal) GetURL() string {
-	return e.metadata.URL
-}
-
-func (e *GitExternal) GetTag() string {
-	return e.metadata.Tag
-}
-
-func (e *GitExternal) GetCheckoutType() string {
-	return e.metadata.CheckoutType
-}
-
-func (e *GitExternal) GetType() string {
-	return e.metadata.EType.ToString()
-}
-
-func (e *GitExternal) GetCurseSlug() string {
-	return e.metadata.CurseSlug
-}
-
 func NewGitExternal(e *ExternalEntry) (*GitExternal, error) {
 	if e.EType != Git {
 		return nil, fmt.Errorf("external entry is not a git type")
