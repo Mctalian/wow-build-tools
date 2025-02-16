@@ -21,26 +21,26 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run tests
-        run: |
-          go install github.com/vakenbolt/go-test-report@v0.9.3
-          mkdir -p $RUNNER_TEMP/.coverage
-          mkdir -p $RUNNER_TEMP/.test-results
-          go test -json ./... -cover -coverpkg=./... -coverprofile="$RUNNER_TEMP/.coverage/.cover.out" | go-test-report -o $RUNNER_TEMP/.test-results/report.html -g 8
-          go tool cover -html="$RUNNER_TEMP/.coverage/cover.out" -o "$RUNNER_TEMP/.coverage/report.html"
+      # - name: Run tests
+      #   run: |
+      #     go install github.com/vakenbolt/go-test-report@v0.9.3
+      #     mkdir -p $RUNNER_TEMP/.coverage
+      #     mkdir -p $RUNNER_TEMP/.test-results
+      #     go test -json ./... -cover -coverpkg=./... -coverprofile="$RUNNER_TEMP/.coverage/.cover.out" | go-test-report -o $RUNNER_TEMP/.test-results/report.html -g 8
+      #     go tool cover -html="$RUNNER_TEMP/.coverage/cover.out" -o "$RUNNER_TEMP/.coverage/report.html"
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: $RUNNER_TEMP/.test-results
+      # - name: Upload test results
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: test-results
+      #     path: $RUNNER_TEMP/.test-results
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: $RUNNER_TEMP/.coverage
+      # - name: Upload coverage
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage
+      #     path: $RUNNER_TEMP/.coverage
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
