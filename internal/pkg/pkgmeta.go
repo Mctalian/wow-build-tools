@@ -34,6 +34,10 @@ type PkgMeta struct {
 	ManualChangelog      PkgMetaManualChangelog            `yaml:"manual-changelog"`
 	ChangelogTitle       string                            `yaml:"changelog-title"`
 	License              string                            `yaml:"license-output"`
+	EnableTocCreation    bool                              `yaml:"enable-toc-creation"`
+	WowiCreateChangelog  bool                              `yaml:"wowi-create-changelog"`
+	WowiConvertChangelog bool                              `yaml:"wowi-convert-changelog"`
+	WowiArchivePrevious  bool                              `yaml:"wowi-archive-previous"`
 }
 
 type PkgMetaFileNotFound struct{}
@@ -191,6 +195,17 @@ func (p *PkgMeta) GetNoLibDirs(pkgDir string) []string {
 	return noLibDirs
 }
 
+func defaultPkgMeta() *PkgMeta {
+	return &PkgMeta{
+		ManualChangelog: PkgMetaManualChangelog{
+			MarkupType: "text",
+		},
+		WowiArchivePrevious:  true,
+		WowiConvertChangelog: true,
+		WowiCreateChangelog:  true,
+	}
+}
+
 // ParsePkgMeta reads and parses the .pkgmeta or pkgmeta.yml file
 func parsePkgMeta(filename string) (*PkgMeta, error) {
 	data, err := os.ReadFile(filename)
@@ -198,8 +213,8 @@ func parsePkgMeta(filename string) (*PkgMeta, error) {
 		return nil, err
 	}
 
-	var pkgMeta PkgMeta
-	err = yaml.Unmarshal(data, &pkgMeta)
+	pkgMeta := defaultPkgMeta()
+	err = yaml.Unmarshal(data, pkgMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +228,7 @@ func parsePkgMeta(filename string) (*PkgMeta, error) {
 		pkgMeta.ToolsUsed = append(pkgMeta.ToolsUsed, "wow-build-tools")
 	}
 
-	return &pkgMeta, nil
+	return pkgMeta, nil
 }
 
 type ParseArgs struct {

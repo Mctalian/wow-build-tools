@@ -42,6 +42,7 @@ to quickly create a Cobra application.`,
 
 func init() {
 	uploadCmd.AddCommand(curseCmd)
+	curseCmd.MarkFlagRequired("interface-versions")
 
 	// Here you will define your flags and configuration settings.
 

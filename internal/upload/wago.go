@@ -154,7 +154,8 @@ func (w *wagoUpload) validateGameVersions(gameVersions []string) (err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error("Could not fetch game versions: %v", resp.Status)
+		err = fmt.Errorf("could not fetch game versions: %v", resp.Status)
+		return
 	}
 
 	var versionResp wagoGameVersionResponse
@@ -335,7 +336,7 @@ func UploadToWago(args UploadWagoArgs) error {
 	wagoId, err := getWagoId(tocFiles)
 	if err != nil {
 		if err == ErrNoWagoId || err == ErrNoWagoUpload {
-			logger.Verbose("Skipping CurseForge upload")
+			logger.Verbose("Skipping Wago upload")
 			return nil
 		}
 		return err

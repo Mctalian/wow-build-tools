@@ -34,7 +34,10 @@ func init() {
 	// and all subcommands, e.g.:
 	// uploadCmd.PersistentFlags().String("foo", "", "A help for foo")
 	uploadCmd.PersistentFlags().StringVarP(&cliflags.UploadInput, "input", "i", "", "Path to the addon zip file to upload")
+	uploadCmd.MarkFlagFilename("input")
+	uploadCmd.MarkFlagRequired("input")
 	uploadCmd.PersistentFlags().StringVarP(&cliflags.UploadLabel, "label", "l", "", "Label for the uploaded file")
+	uploadCmd.MarkFlagRequired("label")
 	uploadCmd.PersistentFlags().IntSliceVar(&cliflags.UploadInterfaceVersions, "interface-versions", []int{}, "Interface versions that your addon supports.")
 
 	// Cobra supports local flags which will only run when this command
