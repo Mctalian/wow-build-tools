@@ -46,6 +46,7 @@ type Injector struct {
 	vcs             repo.VcsRepo
 	pkgDir          string
 	logGroup        *logger.LogGroup
+	NoLibStripFiles []string
 }
 
 func (i *Injector) findAndReplaceInFile(filePath string) error {
@@ -179,6 +180,10 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 			}
 		}
 		output = strings.Join(newLines, "\n")
+	}
+
+	if strings.Contains(output, tokens.NoLibStrip.NormalizeToken()) {
+		i.NoLibStripFiles = append(i.NoLibStripFiles, filePath)
 	}
 
 	if !cliflags.UnixLineEndings {

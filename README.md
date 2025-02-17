@@ -102,7 +102,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `@beta@`
   - [x] `@debug@`
   - [x] `@do-not-package@`
-  - [ ] `@no-lib-strip@`
+  - [x] `@no-lib-strip@`
   - [ ] `@retail@`
   - [ ] `@version-retail@`
   - [ ] `@version-classic@`

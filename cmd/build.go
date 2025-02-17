@@ -337,7 +337,7 @@ var buildCmd = &cobra.Command{
 			go func() {
 				defer zipWGroup.Done()
 				zipPath := f.ReleaseDir + "/" + zipFileName + ".zip"
-				err = z.ZipFiles(packageDir, zipPath, []string{})
+				err = z.ZipFiles(packageDir, zipPath)
 				if err != nil {
 					zipErrChan <- err
 					return
@@ -356,7 +356,7 @@ var buildCmd = &cobra.Command{
 				go func() {
 					defer zipWGroup.Done()
 					zipPath := f.ReleaseDir + "/" + noLibFileName + ".zip"
-					err = z.ZipFiles(packageDir, zipPath, dirsToExclude)
+					err = z.ZipFiles(packageDir, zipPath, dirsToExclude, i.NoLibStripFiles)
 					if err != nil {
 						zipErrChan <- err
 						return
