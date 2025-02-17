@@ -22,8 +22,8 @@ func TestTocFileToGameFlavor(t *testing.T) {
 		{"TestAddon_Bfa", BfaClassic},
 		{"TestAddon_Sl", SlClassic},
 		{"TestAddon_Df", DfClassic},
-		{"TestAddon_Mainline", Mainline},
-		{"TestAddon", Mainline},
+		{"TestAddon_Mainline", Retail},
+		{"TestAddon", Retail},
 		{"TestAddon_NotReal", Unknown},
 	}
 

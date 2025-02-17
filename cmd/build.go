@@ -43,9 +43,9 @@ var buildCmd = &cobra.Command{
 			logger.SetLogLevel(logger.INFO)
 		}
 
-		err := f.ValidateInputArgs()
+		err := toc.ParseGameVersionFlag()
 		if err != nil {
-			logger.Error("Error validating input arguments: %v", err)
+			logger.Error("Error validating game version input argument: %v", err)
 			return err
 		}
 
@@ -203,6 +203,7 @@ var buildCmd = &cobra.Command{
 			return err
 		}
 
+		var releaseType string
 		bTTM := tokens.BuildTypeTokenMap{
 			tokens.Alpha:         false,
 			tokens.Beta:          false,
@@ -220,37 +221,54 @@ var buildCmd = &cobra.Command{
 				flags[tokens.AlphaFlag] = "-alpha"
 				bTTM[tokens.Alpha] = true
 				bTTM[tokens.Beta] = false
+				releaseType = "alpha"
 			} else if strings.Contains(tag, "beta") {
 				flags[tokens.BetaFlag] = "-beta"
 				bTTM[tokens.Alpha] = false
 				bTTM[tokens.Beta] = true
+				releaseType = "beta"
 			} else {
 				bTTM[tokens.Alpha] = false
 				bTTM[tokens.Beta] = false
+				releaseType = "release"
 			}
 		} else {
 			flags[tokens.AlphaFlag] = "-alpha"
 			bTTM[tokens.Alpha] = true
 			bTTM[tokens.Beta] = false
+			releaseType = "alpha"
 		}
-		if f.GameVersion != "" {
-			switch f.GameVersion {
-			case "retail":
+		flavors := toc.GetGameFlavors()
+		if len(flavors) == 1 {
+			switch flavors[0] {
+			case toc.Retail:
 				bTTM[tokens.Retail] = true
 				bTTM[tokens.VersionRetail] = true
-			case "classic":
+			case toc.ClassicEra:
 				flags[tokens.ClassicFlag] = "-classic"
 				bTTM[tokens.Classic] = true
-			case "bcc":
+			case toc.TbcClassic:
 				bTTM[tokens.VersionBcc] = true
-			case "wrath":
+			case toc.WotlkClassic:
 				bTTM[tokens.VersionWrath] = true
-			case "cata":
+			case toc.CataClassic:
 				bTTM[tokens.VersionCata] = true
+			case toc.MopClassic:
+				bTTM[tokens.VersionMop] = true
+			case toc.WodClassic:
+				bTTM[tokens.VersionWod] = true
+			case toc.LegionClassic:
+				bTTM[tokens.VersionLegion] = true
+			case toc.BfaClassic:
+				bTTM[tokens.VersionBfa] = true
+			case toc.SlClassic:
+				bTTM[tokens.VersionSl] = true
+			case toc.DfClassic:
+				bTTM[tokens.VersionDf] = true
 			default:
 				bTTM[tokens.Retail] = true
 			}
-		} else if len(f.GameVerList) > 0 {
+		} else {
 			// TODO: Handle multiple game versions
 		}
 
@@ -362,11 +380,12 @@ var buildCmd = &cobra.Command{
 
 			if !f.SkipUpload {
 				curseArgs := upload.UploadCurseArgs{
-					ZipPath:   zipFilePath,
-					FileLabel: templateTokens.GetLabel(&tokenMap, flags),
-					TocFiles:  tocFiles,
-					PkgMeta:   pkgMeta,
-					Changelog: cl,
+					ZipPath:     zipFilePath,
+					FileLabel:   templateTokens.GetLabel(&tokenMap, flags),
+					TocFiles:    tocFiles,
+					PkgMeta:     pkgMeta,
+					Changelog:   cl,
+					ReleaseType: releaseType,
 				}
 				if err = upload.UploadToCurse(curseArgs); err != nil {
 					logger.Error("Curse Upload Error: %v", err)

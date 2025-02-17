@@ -22,52 +22,7 @@ type Toc struct {
 	Flavor    GameFlavor
 }
 
-type GameFlavor int
-
-const (
-	Unknown GameFlavor = iota
-	ClassicEra
-	TbcClassic
-	WotlkClassic
-	CataClassic
-	MopClassic // Just a guess
-	WodClassic
-	LegionClassic
-	BfaClassic
-	SlClassic
-	DfClassic
-	Mainline
-)
-
-func (g GameFlavor) ToString() string {
-	switch g {
-	case ClassicEra:
-		return "Classic"
-	case TbcClassic:
-		return "TBC"
-	case WotlkClassic:
-		return "WotLK"
-	case CataClassic:
-		return "Cata"
-	case MopClassic: // Just a guess
-		return "MoP"
-	case WodClassic:
-		return "WoD"
-	case LegionClassic:
-		return "Legion"
-	case BfaClassic:
-		return "BfA"
-	case SlClassic:
-		return "SL"
-	case DfClassic:
-		return "DF"
-	default:
-		return "Mainline"
-	}
-}
-
-func (t *Toc) GetGameVersions() []string {
-	var gameVersions []string
+func (t *Toc) addGameVersionsFromToc() map[GameFlavor][]string {
 	for _, interfaceVersion := range t.Interface {
 		// Grab the right-most 2 digits for the patch version
 		patchVersion := interfaceVersion % 100
@@ -76,7 +31,8 @@ func (t *Toc) GetGameVersions() []string {
 		// Grab the left-most digits for the major version
 		majorVersion := interfaceVersion / 10000
 
-		gameVersions = append(gameVersions, fmt.Sprintf("%d.%d.%d", majorVersion, minorVersion, patchVersion))
+		flavor := getFlavorFromMajorVersion(majorVersion)
+		AddGameVersion(flavor, fmt.Sprintf("%d.%d.%d", majorVersion, minorVersion, patchVersion))
 	}
 
 	return gameVersions
@@ -102,7 +58,7 @@ func TocFileToGameFlavor(noExt string) (flavor GameFlavor, suffix string) {
 		flavor = ClassicEra
 	case "tbc", "bcc":
 		flavor = TbcClassic
-	case "wrath", "wotlk":
+	case "wrath", "wotlk", "wotlkc":
 		flavor = WotlkClassic
 	case "cata":
 		flavor = CataClassic
@@ -119,7 +75,7 @@ func TocFileToGameFlavor(noExt string) (flavor GameFlavor, suffix string) {
 	case "df":
 		flavor = DfClassic
 	case "", "mainline":
-		flavor = Mainline
+		flavor = Retail
 	default:
 		flavor = Unknown
 	}
@@ -216,6 +172,8 @@ func parse(filePath, tocContents string) (*Toc, error) {
 			toc.WagoId = strings.TrimSpace(toc.WagoId)
 		}
 	}
+
+	toc.addGameVersionsFromToc()
 
 	return toc, nil
 }

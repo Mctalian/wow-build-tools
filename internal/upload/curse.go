@@ -25,51 +25,52 @@ var ErrNoCurseUpload = fmt.Errorf("CurseForge upload is disabled")
 var ErrNoCurseApiKey = fmt.Errorf("CF_API_KEY not set")
 
 var curseApiUrl = "https://wow.curseforge.com/api/"
+var curseGameVersionsUrl = fmt.Sprintf("%sgame/wow/versions", curseApiUrl)
 
-type gameVersionTypeId int
-
-const (
-	classic gameVersionTypeId = 67408
-	bcc     gameVersionTypeId = 73246
-	wrath   gameVersionTypeId = 73713
-	cata    gameVersionTypeId = 77522
-	retail  gameVersionTypeId = 517
-)
-
-type ReleaseType string
+type curseGameVersionTypeId int
 
 const (
-	AlphaRelease ReleaseType = "alpha"
-	BetaRelease  ReleaseType = "beta"
-	Release      ReleaseType = "release"
+	classic curseGameVersionTypeId = 67408
+	bcc     curseGameVersionTypeId = 73246
+	wrath   curseGameVersionTypeId = 73713
+	cata    curseGameVersionTypeId = 77522
+	retail  curseGameVersionTypeId = 517
 )
 
-type RelationshipType string
+type curseReleaseType string
 
 const (
-	Incompatible       RelationshipType = "incompatible"
-	EmbeddedLibrary    RelationshipType = "embeddedLibrary"
-	OptionalDependency RelationshipType = "optionalDependency"
-	RequiredDependency RelationshipType = "requiredDependency"
-	Tool               RelationshipType = "tool"
+	AlphaRelease curseReleaseType = "alpha"
+	BetaRelease  curseReleaseType = "beta"
+	Release      curseReleaseType = "release"
 )
 
-type ProjectRelationship struct {
-	Slug string           `json:"slug"`
-	Type RelationshipType `json:"type"`
+type curseRelationshipType string
+
+const (
+	Incompatible       curseRelationshipType = "incompatible"
+	EmbeddedLibrary    curseRelationshipType = "embeddedLibrary"
+	OptionalDependency curseRelationshipType = "optionalDependency"
+	RequiredDependency curseRelationshipType = "requiredDependency"
+	Tool               curseRelationshipType = "tool"
+)
+
+type curseProjectRelationship struct {
+	Slug string                `json:"slug"`
+	Type curseRelationshipType `json:"type"`
 }
 
-type Relations struct {
-	Projects []ProjectRelationship `json:"projects"`
+type curseRelations struct {
+	Projects []curseProjectRelationship `json:"projects"`
 }
 
 type cursePayload struct {
 	Changelog     string               `json:"changelog"`
 	ChangelogType changelog.MarkupType `json:"changelogType"`
 	DisplayName   string               `json:"displayName"`
-	ReleaseType   ReleaseType          `json:"releaseType"`
+	ReleaseType   curseReleaseType     `json:"releaseType"`
 	GameVersions  []int                `json:"gameVersions"`
-	Relations     Relations            `json:"relations"`
+	Relations     curseRelations       `json:"relations"`
 }
 
 type curseUpload struct {
@@ -80,17 +81,18 @@ type curseUpload struct {
 	zipFile      string
 	displayName  string
 	gameVersions []int
+	releaseType  curseReleaseType
 	changelog    *changelog.Changelog
 }
 
-type gameVersion struct {
+type curseGameVersion struct {
 	ID                int    `json:"id"`
 	Name              string `json:"name"`
 	Slug              string `json:"slug"`
 	GameVersionTypeID int    `json:"gameVersionTypeId"`
 }
 
-type gameVersionResponse []gameVersion
+type curseGameVersionResponse []curseGameVersion
 
 func locateCurseId(tocFiles []*toc.Toc) (curseId string, err error) {
 	var foundCurseId string
@@ -126,30 +128,30 @@ func (c *curseUpload) lookupCurseToken() (err error) {
 }
 
 func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
-	projects := make([]ProjectRelationship, 0)
+	projects := make([]curseProjectRelationship, 0)
 	for _, embed := range pkgMeta.EmbeddedLibraries {
-		projects = append(projects, ProjectRelationship{
+		projects = append(projects, curseProjectRelationship{
 			Slug: embed,
 			Type: EmbeddedLibrary,
 		})
 	}
 
 	for _, tool := range pkgMeta.ToolsUsed {
-		projects = append(projects, ProjectRelationship{
+		projects = append(projects, curseProjectRelationship{
 			Slug: tool,
 			Type: Tool,
 		})
 	}
 
 	for _, reqDep := range pkgMeta.RequiredDependencies {
-		projects = append(projects, ProjectRelationship{
+		projects = append(projects, curseProjectRelationship{
 			Slug: reqDep,
 			Type: RequiredDependency,
 		})
 	}
 
 	for _, optDep := range pkgMeta.OptionalDependencies {
-		projects = append(projects, ProjectRelationship{
+		projects = append(projects, curseProjectRelationship{
 			Slug: optDep,
 			Type: OptionalDependency,
 		})
@@ -168,12 +170,12 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 		Changelog:     string(changelogContents),
 		ChangelogType: c.changelog.MarkupType,
 		DisplayName:   c.displayName,
-		ReleaseType:   AlphaRelease,
+		ReleaseType:   c.releaseType,
 		GameVersions:  c.gameVersions,
 	}
 
 	if len(projects) > 0 {
-		payload.Relations = Relations{
+		payload.Relations = curseRelations{
 			Projects: projects,
 		}
 	}
@@ -189,9 +191,7 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 }
 
 func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
-	gameVersionsUrl := fmt.Sprintf("%sgame/wow/versions", curseApiUrl)
-
-	req, err := http.NewRequest("GET", gameVersionsUrl, nil)
+	req, err := http.NewRequest("GET", curseGameVersionsUrl, nil)
 	if err != nil {
 		logger.Error("Could not fetch game versions: %v", err)
 		return
@@ -211,7 +211,7 @@ func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 		logger.Error("Could not fetch game versions: %v", resp.Status)
 	}
 
-	var versions gameVersionResponse
+	var versions curseGameVersionResponse
 	err = json.NewDecoder(resp.Body).Decode(&versions)
 	if err != nil {
 		logger.Error("Could not decode game versions: %v", err)
@@ -304,19 +304,19 @@ func (c *curseUpload) upload() (err error) {
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		resp, err = client.Do(req)
 		if err == nil && (resp.StatusCode >= 200 && resp.StatusCode < 300) {
-			logger.Info("Upload successful!")
+			logger.Info("Successfully uploaded to CurseForge!")
 			return
 		}
 
 		// Log the error details for debugging
 		if err != nil {
-			logger.Warn("upload error: %s", err)
+			logger.Warn("upload error: %v", err)
 		} else {
 			logger.Warn("unexpected status code: %d", resp.StatusCode)
 			jsonBody := map[string]interface{}{}
 			err = json.NewDecoder(resp.Body).Decode(&jsonBody)
 			if err != nil {
-				logger.Warn("failed to decode response body: %s", err)
+				logger.Warn("failed to decode response body: %v", err)
 			} else {
 				logger.Warn("response body: %v", jsonBody)
 			}
@@ -332,7 +332,7 @@ func (c *curseUpload) upload() (err error) {
 
 	// If we exhausted our attempts, report the failure.
 	if err != nil {
-		return fmt.Errorf("upload failed after %d attempts: %w", maxAttempts, err)
+		return fmt.Errorf("upload failed after %d attempts: %v", maxAttempts, err)
 	}
 	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
 		return fmt.Errorf("upload failed with status code %d", resp.StatusCode)
@@ -368,11 +368,12 @@ func getCurseId(tocFiles []*toc.Toc) (curseId string, err error) {
 }
 
 type UploadCurseArgs struct {
-	TocFiles  []*toc.Toc
-	ZipPath   string
-	FileLabel string
-	PkgMeta   *pkg.PkgMeta
-	Changelog *changelog.Changelog
+	TocFiles    []*toc.Toc
+	ZipPath     string
+	FileLabel   string
+	PkgMeta     *pkg.PkgMeta
+	Changelog   *changelog.Changelog
+	ReleaseType string
 }
 
 func UploadToCurse(args UploadCurseArgs) error {
@@ -388,12 +389,26 @@ func UploadToCurse(args UploadCurseArgs) error {
 		return err
 	}
 
+	var releaseType curseReleaseType
+	switch args.ReleaseType {
+	case "alpha":
+		releaseType = AlphaRelease
+	case "beta":
+		releaseType = BetaRelease
+	case "release":
+		releaseType = Release
+	default:
+		logger.Warn("Invalid release type: %s, defaulting to alpha", args.ReleaseType)
+		releaseType = AlphaRelease
+	}
+
 	curseUpload := curseUpload{
 		projectId:   curseId,
 		uploadUrl:   fmt.Sprintf("%sprojects/%s/upload-file", curseApiUrl, curseId),
 		zipFile:     args.ZipPath,
 		displayName: args.FileLabel,
 		changelog:   args.Changelog,
+		releaseType: releaseType,
 	}
 
 	if err := curseUpload.lookupCurseToken(); err != nil {
@@ -401,18 +416,7 @@ func UploadToCurse(args UploadCurseArgs) error {
 		return nil
 	}
 
-	var gameVersionsSet = make(map[string]bool)
-	for _, tocFile := range tocFiles {
-		gameVersions := tocFile.GetGameVersions()
-		for _, version := range gameVersions {
-			gameVersionsSet[version] = true
-		}
-	}
-
-	var gameVersions []string
-	for version := range gameVersionsSet {
-		gameVersions = append(gameVersions, version)
-	}
+	gameVersions := toc.GetGameVersions()
 
 	if err := curseUpload.validateGameVersions(gameVersions); err != nil {
 		logger.Error("Could not validate game versions: %v", err)
