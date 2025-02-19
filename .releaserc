@@ -1,0 +1,23 @@
+{
+  "branches": [
+    "main",
+    {
+      "name": "beta",
+      "prerelease": "beta"
+    },
+    {
+      "name": "initial",
+      "prerelease": "alpha"
+    },
+    {
+      "name": "alpha",
+      "prerelease": "alpha"
+    }
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/github"
+  ],
+  "preset": "conventionalcommits"
+}

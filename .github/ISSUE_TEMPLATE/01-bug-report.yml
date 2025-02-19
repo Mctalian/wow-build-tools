@@ -1,0 +1,52 @@
+name: Bug Report
+description: Create a report to help us fix a bug in the project.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the details below so we can investigate the issue.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: A short summary of the bug.
+      placeholder: "e.g. The command '...' fails with error '...'"
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: What command did you run? What kind of flags did you pass? Do you notice the bug with a specific TOC or pkgmeta file?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Observe the error
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "Describe what should happen instead."
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: "Describe what happened instead."
+      required: true
+  - type: textarea
+    id: input-files
+    attributes:
+      label: PkgMeta and/or TOC Files
+      description: Provide your pkgmeta/toc file here. It will help with reproducing the issue quickly.
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: Additional Information
+      description: Any additional context, screenshots, or logs.
+      placeholder: "Add any other context about the problem here."

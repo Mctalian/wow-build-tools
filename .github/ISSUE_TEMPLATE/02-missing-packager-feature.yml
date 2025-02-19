@@ -1,0 +1,52 @@
+name: Missing Packager Feature
+description: Report missing functionality from BigWigsMods/packager in wow-build-tools
+title: "[Feat Imparity] "
+labels: bug, enhancement
+assignees: ""
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a missing feature from BigWigsMods/packager. Please provide the following information to help us understand and address the issue.
+
+  - type: input
+    id: feature_name
+    attributes:
+      label: Missing Feature Description
+      description: Provide a brief name for the missing feature.
+      placeholder: e.g., "Automatic Version Bumping"
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: Equivalent Packager command
+      description: What command and flags did you use in BigWigsMods/packager to do this?
+      placeholder: Describe the command and flags...
+    validations:
+      required: true
+
+  - type: textarea
+    id: pkgmeta_toc_files
+    attributes:
+      label: PkgMeta and/or TOC Files
+      description: Provide your pkgmeta/toc file here. It will help with reproducing the issue quickly.
+      placeholder: Paste the contents of your pkgmeta/toc file here...
+
+  - type: input
+    id: packager_version
+    attributes:
+      label: BigWigsMods/packager Version
+      description: Provide the version of BigWigsMods/packager where the feature is present.
+      placeholder: e.g., "v1.2.3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Provide any additional context or information that may be helpful in addressing the issue.
+      placeholder: Add any other context about the problem here...

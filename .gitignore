@@ -1,6 +1,7 @@
-.pkgmeta
-Libs/
+.coverage/
+.test-results/
 .release/
 dist/
-
 node_modules/
+
+.env
