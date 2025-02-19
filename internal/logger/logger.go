@@ -108,6 +108,14 @@ func (l *Logger) Timing(format string, v ...interface{}) {
 	}
 }
 
+func (l *Logger) TimingNoLog(format string, v ...interface{}) {
+	if currentLevel <= INFO {
+		prefix := l.createPrefix("T")
+		tStr := color.MagentaString(prefix + handleFormat(format, v...))
+		timings = append(timings, tStr)
+	}
+}
+
 func (l *Logger) Prompt(format string, v ...interface{}) {
 	if currentLevel <= INFO {
 		prefix := l.createPrefix("?")
@@ -132,14 +140,15 @@ func InitLogger() {
 var DefaultLogger = &Logger{prefix: ""}
 
 // Global logging functions without requiring a sub-logger
-func Verbose(format string, v ...interface{}) { DefaultLogger.Verbose(format, v...) }
-func Debug(format string, v ...interface{})   { DefaultLogger.Debug(format, v...) }
-func Info(format string, v ...interface{})    { DefaultLogger.Info(format, v...) }
-func Warn(format string, v ...interface{})    { DefaultLogger.Warn(format, v...) }
-func Error(format string, v ...interface{})   { DefaultLogger.Error(format, v...) }
-func Timing(format string, v ...interface{})  { DefaultLogger.Timing(format, v...) }
-func Prompt(format string, v ...interface{})  { DefaultLogger.Prompt(format, v...) }
-func Success(format string, v ...interface{}) { DefaultLogger.Success(format, v...) }
+func Verbose(format string, v ...interface{})     { DefaultLogger.Verbose(format, v...) }
+func Debug(format string, v ...interface{})       { DefaultLogger.Debug(format, v...) }
+func Info(format string, v ...interface{})        { DefaultLogger.Info(format, v...) }
+func Warn(format string, v ...interface{})        { DefaultLogger.Warn(format, v...) }
+func Error(format string, v ...interface{})       { DefaultLogger.Error(format, v...) }
+func Timing(format string, v ...interface{})      { DefaultLogger.Timing(format, v...) }
+func TimingNoLog(format string, v ...interface{}) { DefaultLogger.TimingNoLog(format, v...) }
+func Prompt(format string, v ...interface{})      { DefaultLogger.Prompt(format, v...) }
+func Success(format string, v ...interface{})     { DefaultLogger.Success(format, v...) }
 
 func TimingSummary() {
 	if len(timings) == 0 {

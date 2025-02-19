@@ -114,14 +114,12 @@ func (lg *LogGroup) Flush(writeToTiming ...bool) {
 			sb.WriteString("\n")
 		}
 	}
-	if !withTiming {
-		sb.WriteString(fmt.Sprintf("🏁  %s took %s", lg.Header, time.Since(lg.timeCreated)))
-	}
-	sb.WriteString("\n")
+
+	sb.WriteString(color.MagentaString(fmt.Sprintf("🏁  %s took %s", lg.Header, time.Since(lg.timeCreated))))
 
 	// Print the entire group in one atomic call.
 	log.Print(sb.String())
 	if withTiming {
-		Timing("🏁  %s took %s", lg.Header, time.Since(lg.timeCreated))
+		TimingNoLog("🏁  %s took %s", lg.Header, time.Since(lg.timeCreated))
 	}
 }

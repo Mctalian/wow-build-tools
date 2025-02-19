@@ -379,17 +379,70 @@ var buildCmd = &cobra.Command{
 			flags[tokens.NoLibFlag] = ""
 
 			if !f.SkipUpload {
-				curseArgs := upload.UploadCurseArgs{
-					ZipPath:     zipFilePath,
-					FileLabel:   templateTokens.GetLabel(&tokenMap, flags),
-					TocFiles:    tocFiles,
-					PkgMeta:     pkgMeta,
-					Changelog:   cl,
-					ReleaseType: releaseType,
-				}
-				if err = upload.UploadToCurse(curseArgs); err != nil {
-					logger.Error("Curse Upload Error: %v", err)
-					return err
+				uploadsToAttempt := 3
+				var uploadWGroup sync.WaitGroup
+				uploadErrChan := make(chan error, uploadsToAttempt)
+				uploadWGroup.Add(uploadsToAttempt)
+
+				go func() {
+					defer uploadWGroup.Done()
+					curseArgs := upload.UploadCurseArgs{
+						ZipPath:     zipFilePath,
+						FileLabel:   templateTokens.GetLabel(&tokenMap, flags),
+						TocFiles:    tocFiles,
+						PkgMeta:     pkgMeta,
+						Changelog:   cl,
+						ReleaseType: releaseType,
+					}
+					if err = upload.UploadToCurse(curseArgs); err != nil {
+						logger.Error("Curse Upload Error: %v", err)
+						uploadErrChan <- err
+						return
+					}
+				}()
+
+				go func() {
+					defer uploadWGroup.Done()
+					wowiArgs := upload.UploadWowiArgs{
+						TocFiles:       tocFiles,
+						ProjectVersion: tokenMap[tokens.ProjectVersion],
+						ZipPath:        zipFilePath,
+						FileLabel:      templateTokens.GetLabel(&tokenMap, flags),
+						Changelog:      cl,
+						ReleaseType:    releaseType,
+					}
+					if err = upload.UploadToWowi(wowiArgs); err != nil {
+						logger.Error("WoW Interface Upload Error: %v", err)
+						uploadErrChan <- err
+						return
+					}
+				}()
+
+				go func() {
+					defer uploadWGroup.Done()
+					wagoArgs := upload.UploadWagoArgs{
+						ZipPath:     zipFilePath,
+						FileLabel:   templateTokens.GetLabel(&tokenMap, flags),
+						TocFiles:    tocFiles,
+						Changelog:   cl,
+						ReleaseType: releaseType,
+					}
+					if err = upload.UploadToWago(wagoArgs); err != nil {
+						logger.Error("Wago Upload Error: %v", err)
+						uploadErrChan <- err
+						return
+					}
+				}()
+
+				uploadWGroup.Wait()
+				close(uploadErrChan)
+
+				// Collect errors
+				for err := range uploadErrChan {
+					if err != nil {
+						logger.Error("Upload Error: %v", err)
+						return err
+					}
 				}
 			}
 		}

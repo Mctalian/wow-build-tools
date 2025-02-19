@@ -76,6 +76,7 @@ type wagoUpload struct {
 	changelog      *changelog.Changelog
 	stabilityValue string
 	metadataPart   string
+	logGroup       *logger.LogGroup
 }
 
 func locateWagoId(tocFiles []*toc.Toc) (wagoId string, err error) {
@@ -140,7 +141,7 @@ func (w *wagoUpload) lookupWagoToken() (err error) {
 func (w *wagoUpload) validateGameVersions(gameVersions []string) (err error) {
 	req, err := http.NewRequest("GET", wagoGameVersionsUrl, nil)
 	if err != nil {
-		logger.Error("Could not fetch game versions: %v", err)
+		w.logGroup.Error("Could not fetch game versions: %v", err)
 		return
 	}
 
@@ -148,7 +149,7 @@ func (w *wagoUpload) validateGameVersions(gameVersions []string) (err error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logger.Error("Could not fetch game versions: %v", err)
+		w.logGroup.Error("Could not fetch game versions: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -161,17 +162,17 @@ func (w *wagoUpload) validateGameVersions(gameVersions []string) (err error) {
 	var versionResp wagoGameVersionResponse
 	err = json.NewDecoder(resp.Body).Decode(&versionResp)
 	if err != nil {
-		logger.Error("Could not decode game versions: %v", err)
+		w.logGroup.Error("Could not decode game versions: %v", err)
 		return
 	}
 
 	for _, stability := range versionResp.StabilityValues {
 		if !slices.Contains(wagoStabilityValues, stability) {
-			logger.Warn("Unknown stability value: %s", stability)
+			w.logGroup.Warn("Unknown stability value: %s", stability)
 		}
 	}
 
-	// logger.Info("Game versions: %v", versions)
+	// w.logGroup.Info("Game versions: %v", versions)
 
 	var missingVersions = make(map[string]bool)
 	for _, version := range gameVersions {
@@ -199,7 +200,7 @@ func (w *wagoUpload) validateGameVersions(gameVersions []string) (err error) {
 	}
 
 	if len(w.supportMap) == 0 {
-		logger.Error("Could not find any game versions from interface version(s) in toc file(s)")
+		w.logGroup.Error("Could not find any game versions from interface version(s) in toc file(s)")
 		return fmt.Errorf("no game versions found")
 	}
 
@@ -211,7 +212,7 @@ func (w *wagoUpload) validateGameVersions(gameVersions []string) (err error) {
 	}
 
 	if len(missingVersionsList) > 0 {
-		logger.Warn("Could not find all game versions from interface versions. Missing: %v", missingVersionsList)
+		w.logGroup.Warn("Could not find all game versions from interface versions. Missing: %v", missingVersionsList)
 	}
 
 	return
@@ -243,7 +244,7 @@ func (w *wagoUpload) preparePayload() error {
 }
 
 func (w *wagoUpload) upload() error {
-	logger.Info("Uploading to Wago.io")
+	w.logGroup.Info("Uploading to Wago.io")
 
 	file, err := os.Open(w.zipFile)
 	if err != nil {
@@ -254,7 +255,7 @@ func (w *wagoUpload) upload() error {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	logger.Info("metadata: %s", w.metadataPart)
+	w.logGroup.Info("metadata: %s", w.metadataPart)
 
 	if err = writer.WriteField("metadata", w.metadataPart); err != nil {
 		return fmt.Errorf("could not write metadata: %v", err)
@@ -289,24 +290,24 @@ func (w *wagoUpload) upload() error {
 	for attempt := 0; attempt <= maxAttempts; attempt++ {
 		resp, err = client.Do(req)
 		if err == nil && resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
-			logger.Info("Successfully uploaded to Wago.io!")
+			w.logGroup.Info("Successfully uploaded to Wago.io!")
 			return nil
 		}
 		if err != nil {
-			logger.Warn("Failed to upload to Wago.io: %v", err)
+			w.logGroup.Warn("Failed to upload to Wago.io: %v", err)
 		} else {
-			logger.Warn("Failed to upload to Wago.io: %s", resp.Status)
+			w.logGroup.Warn("Failed to upload to Wago.io: %s", resp.Status)
 			jsonBody := make(map[string]interface{})
 			err = json.NewDecoder(resp.Body).Decode(&jsonBody)
 			if err != nil {
-				logger.Warn("failed to decode response body: %v", err)
+				w.logGroup.Warn("failed to decode response body: %v", err)
 			} else {
-				logger.Warn("Response: %v", jsonBody)
+				w.logGroup.Warn("Response: %v", jsonBody)
 			}
 		}
 
 		if attempt < maxAttempts {
-			logger.Warn("Retrying: Attempt %d/%d in %s...", attempt+1, maxAttempts, delay)
+			w.logGroup.Warn("Retrying: Attempt %d/%d in %s...", attempt+1, maxAttempts, delay)
 			time.Sleep(delay)
 			delay *= 2
 		}
@@ -331,12 +332,15 @@ type UploadWagoArgs struct {
 }
 
 func UploadToWago(args UploadWagoArgs) error {
+	logGroup := logger.NewLogGroup("🪢  Uploading to Wago")
+	defer logGroup.Flush(true)
+
 	tocFiles := args.TocFiles
 
 	wagoId, err := getWagoId(tocFiles)
 	if err != nil {
 		if err == ErrNoWagoId || err == ErrNoWagoUpload {
-			logger.Verbose("Skipping Wago upload")
+			logGroup.Verbose("Skipping Wago upload")
 			return nil
 		}
 		return err
@@ -351,7 +355,7 @@ func UploadToWago(args UploadWagoArgs) error {
 	case "release":
 		stabilityValue = "stable"
 	default:
-		logger.Warn("Unknown release type: %s", args.ReleaseType)
+		logGroup.Warn("Unknown release type: %s", args.ReleaseType)
 		stabilityValue = "alpha"
 	}
 
@@ -362,17 +366,18 @@ func UploadToWago(args UploadWagoArgs) error {
 		displayName:    args.FileLabel,
 		changelog:      args.Changelog,
 		stabilityValue: stabilityValue,
+		logGroup:       logGroup,
 	}
 
 	if err := wagoUpload.lookupWagoToken(); err != nil {
-		logger.Info("Skipping Wago upload: %s", err)
+		logGroup.Info("Skipping Wago upload: %s", err)
 		return nil
 	}
 
 	gameVersions := toc.GetGameVersions()
 
 	if err := wagoUpload.validateGameVersions(gameVersions); err != nil {
-		logger.Error("Could not validate game versions: %v", err)
+		logGroup.Error("Could not validate game versions: %v", err)
 		return err
 	}
 

@@ -88,6 +88,7 @@ type wowiUpload struct {
 	compatible  []string
 	version     string
 	archiveOld  bool
+	logGroup    *logger.LogGroup
 }
 
 func (w *wowiUpload) lookupWowiToken() (err error) {
@@ -114,20 +115,20 @@ func stringInSlice(str string, list []string) bool {
 func (w *wowiUpload) validateGameVersions(gameVersions []string) error {
 	resp, err := http.Get(wowiGameVersionsUrl)
 	if err != nil {
-		logger.Error("Could not fetch game versions: %v", err)
+		w.logGroup.Error("Could not fetch game versions: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error("Could not fetch game versions: %v", err)
+		w.logGroup.Error("Could not fetch game versions: %v", err)
 		return fmt.Errorf("could not fetch game versions: %v", err)
 	}
 
 	var versionResp []wowiGameVersionsEntry
 	err = json.NewDecoder(resp.Body).Decode(&versionResp)
 	if err != nil {
-		logger.Error("Could not fetch game versions: %v", err)
+		w.logGroup.Error("Could not fetch game versions: %v", err)
 		return err
 	}
 
@@ -138,7 +139,7 @@ func (w *wowiUpload) validateGameVersions(gameVersions []string) error {
 
 	for _, gameVersion := range gameVersions {
 		if !stringInSlice(gameVersion, versionIdList) {
-			logger.Warn("Game version %s is not supported by WoW Interface, skipping", gameVersion)
+			w.logGroup.Warn("Game version %s is not supported by WoW Interface, skipping", gameVersion)
 		} else {
 			w.compatible = append(w.compatible, gameVersion)
 		}
@@ -148,7 +149,7 @@ func (w *wowiUpload) validateGameVersions(gameVersions []string) error {
 }
 
 func (w *wowiUpload) upload() error {
-	logger.Info("Uploading to WoW Interface")
+	w.logGroup.Info("Uploading to WoW Interface")
 
 	file, err := os.Open(w.zipFile)
 	if err != nil {
@@ -191,12 +192,15 @@ type UploadWowiArgs struct {
 }
 
 func UploadToWowi(args UploadWowiArgs) error {
+	logGroup := logger.NewLogGroup("🛜  Uploading to WoW Interface")
+	defer logGroup.Flush(true)
+
 	tocFiles := args.TocFiles
 
 	wowiId, err := getWowiId(tocFiles)
 	if err != nil {
 		if err == ErrNoWowiId || err == ErrNoWowiUpload {
-			logger.Verbose("Skipping WoW Interface upload")
+			logGroup.Verbose("Skipping WoW Interface upload")
 			return nil
 		}
 		return err
@@ -209,17 +213,18 @@ func UploadToWowi(args UploadWowiArgs) error {
 		changelog:   args.Changelog,
 		version:     args.ProjectVersion,
 		archiveOld:  args.WowiArchiveOld,
+		logGroup:    logGroup,
 	}
 
 	if err := wowiUpload.lookupWowiToken(); err != nil {
-		logger.Info("Skipping WoW Interface upload: %s", err)
+		logGroup.Info("Skipping WoW Interface upload: %s", err)
 		return nil
 	}
 
 	gameVersions := toc.GetGameVersions()
 
 	if err := wowiUpload.validateGameVersions(gameVersions); err != nil {
-		logger.Error("Could not validate game versions: %v", err)
+		logGroup.Error("Could not validate game versions: %v", err)
 		return err
 	}
 

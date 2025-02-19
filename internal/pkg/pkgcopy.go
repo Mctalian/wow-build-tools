@@ -108,9 +108,14 @@ func copyExternal(e *external.ExternalEntry, packageDir string) error {
 	return copyFromCacheToPackageDir(destPath, repoCachePath, e.LogGroup)
 }
 
-func CopySingleFile(path string, destPath string, logGroup *logger.LogGroup) error {
+func CopySingleFile(path string, destPath string, logGroup *logger.LogGroup, args ...string) error {
+	prettyPath := path
+	if args != nil {
+		prettyPath = args[0]
+	}
+
 	if logGroup != nil {
-		logGroup.Info("📑 Copying file %s", path)
+		logGroup.Info("📑 Copying file %s", prettyPath)
 	}
 	// Open the source file.
 	srcFile, err := os.Open(path)
@@ -145,6 +150,8 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 			return err
 		}
 
+		prettyPath := strings.TrimPrefix(path, topDir+"/")
+
 		// Skip hidden files or directories based on their base name.
 		if strings.HasPrefix(d.Name(), ".") && d.Name() != "." && d.Name() != ".." {
 			logGroup.Debug("⛔ Ignoring hidden file or directory %s", path)
@@ -172,7 +179,7 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 				return fmt.Errorf("error matching ignore pattern: %v", err)
 			}
 			if matched {
-				logGroup.Debug("⛔ Ignoring %s", path)
+				logGroup.Debug("⛔ Ignoring %s", prettyPath)
 				// If it's a directory, skip the whole subtree.
 				if d.IsDir() {
 					return filepath.SkipDir
@@ -185,7 +192,7 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 				return fmt.Errorf("error matching ignore pattern: %v", err)
 			}
 			if matched {
-				logGroup.Debug("⛔ Ignoring %s", path)
+				logGroup.Debug("⛔ Ignoring %s", prettyPath)
 				// If it's a directory, skip the whole subtree.
 				if d.IsDir() {
 					return filepath.SkipDir
@@ -196,7 +203,7 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 
 		// Check the repo's ignore logic.
 		if vR.IsIgnored(path, d.IsDir()) {
-			logGroup.Debug("⛔ Ignoring %s", path)
+			logGroup.Debug("⛔ Ignoring %s", prettyPath)
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
@@ -213,7 +220,7 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 				return fmt.Errorf("error creating directory %s: %v", destPath, err)
 			}
 		} else {
-			err = CopySingleFile(path, destPath, logGroup)
+			err = CopySingleFile(path, destPath, logGroup, prettyPath)
 			if err != nil {
 				return err
 			}

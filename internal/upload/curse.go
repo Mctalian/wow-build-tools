@@ -83,6 +83,7 @@ type curseUpload struct {
 	gameVersions []int
 	releaseType  curseReleaseType
 	changelog    *changelog.Changelog
+	logGroup     *logger.LogGroup
 }
 
 type curseGameVersion struct {
@@ -193,7 +194,7 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 	req, err := http.NewRequest("GET", curseGameVersionsUrl, nil)
 	if err != nil {
-		logger.Error("Could not fetch game versions: %v", err)
+		c.logGroup.Error("Could not fetch game versions: %v", err)
 		return
 	}
 
@@ -202,23 +203,23 @@ func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logger.Error("Could not fetch game versions: %v", err)
+		c.logGroup.Error("Could not fetch game versions: %v", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error("Could not fetch game versions: %v", resp.Status)
+		c.logGroup.Error("Could not fetch game versions: %v", resp.Status)
 	}
 
 	var versions curseGameVersionResponse
 	err = json.NewDecoder(resp.Body).Decode(&versions)
 	if err != nil {
-		logger.Error("Could not decode game versions: %v", err)
+		c.logGroup.Error("Could not decode game versions: %v", err)
 		return
 	}
 
-	// logger.Info("Game versions: %v", versions)
+	// c.logGroup.Info("Game versions: %v", versions)
 
 	var missingVersions = make(map[string]bool)
 	for _, version := range gameVersions {
@@ -233,7 +234,7 @@ func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 	}
 
 	if len(c.gameVersions) == 0 {
-		logger.Error("Could not find any game versions from interface version(s) in toc file(s)")
+		c.logGroup.Error("Could not find any game versions from interface version(s) in toc file(s)")
 		return fmt.Errorf("no game versions found")
 	}
 
@@ -244,14 +245,14 @@ func (c *curseUpload) validateGameVersions(gameVersions []string) (err error) {
 				missingVersionsList = append(missingVersionsList, version)
 			}
 		}
-		logger.Warn("Could not find all game versions from interface versions. Missing: %v", missingVersionsList)
+		c.logGroup.Warn("Could not find all game versions from interface versions. Missing: %v", missingVersionsList)
 	}
 
 	return
 }
 
 func (c *curseUpload) upload() (err error) {
-	logger.Info("Uploading to CurseForge")
+	c.logGroup.Info("Uploading to CurseForge")
 
 	// Open the zip file to upload
 	file, err := os.Open(c.zipFile)
@@ -264,7 +265,7 @@ func (c *curseUpload) upload() (err error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	logger.Info("metadata: %s", c.metadataPart)
+	c.logGroup.Info("metadata: %s", c.metadataPart)
 
 	// Add metadata part as a form field
 	if err = writer.WriteField("metadata", c.metadataPart); err != nil {
@@ -304,27 +305,27 @@ func (c *curseUpload) upload() (err error) {
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		resp, err = client.Do(req)
 		if err == nil && (resp.StatusCode >= 200 && resp.StatusCode < 300) {
-			logger.Info("Successfully uploaded to CurseForge!")
+			c.logGroup.Info("Successfully uploaded to CurseForge!")
 			return
 		}
 
 		// Log the error details for debugging
 		if err != nil {
-			logger.Warn("upload error: %v", err)
+			c.logGroup.Warn("upload error: %v", err)
 		} else {
-			logger.Warn("unexpected status code: %d", resp.StatusCode)
+			c.logGroup.Warn("unexpected status code: %d", resp.StatusCode)
 			jsonBody := map[string]interface{}{}
 			err = json.NewDecoder(resp.Body).Decode(&jsonBody)
 			if err != nil {
-				logger.Warn("failed to decode response body: %v", err)
+				c.logGroup.Warn("failed to decode response body: %v", err)
 			} else {
-				logger.Warn("response body: %v", jsonBody)
+				c.logGroup.Warn("response body: %v", jsonBody)
 			}
 		}
 
 		// If not the last attempt, wait for the delay before retrying
 		if attempt < maxAttempts {
-			logger.Warn("Retrying: Attempt %d/%d in %s...", attempt+1, maxAttempts, delay)
+			c.logGroup.Warn("Retrying: Attempt %d/%d in %s...", attempt+1, maxAttempts, delay)
 			time.Sleep(delay)
 			delay *= 2 // Exponential backoff: double the delay each time
 		}
@@ -377,13 +378,16 @@ type UploadCurseArgs struct {
 }
 
 func UploadToCurse(args UploadCurseArgs) error {
+	logGroup := logger.NewLogGroup("🔥 Uploading to CurseForge")
+	defer logGroup.Flush(true)
+
 	tocFiles := args.TocFiles
 	pkgMeta := args.PkgMeta
 
 	curseId, err := getCurseId(tocFiles)
 	if err != nil {
 		if err == ErrNoCurseId || err == ErrNoCurseUpload {
-			logger.Verbose("Skipping CurseForge upload")
+			logGroup.Verbose("Skipping CurseForge upload")
 			return nil
 		}
 		return err
@@ -398,7 +402,7 @@ func UploadToCurse(args UploadCurseArgs) error {
 	case "release":
 		releaseType = Release
 	default:
-		logger.Warn("Invalid release type: %s, defaulting to alpha", args.ReleaseType)
+		logGroup.Warn("Invalid release type: %s, defaulting to alpha", args.ReleaseType)
 		releaseType = AlphaRelease
 	}
 
@@ -409,17 +413,18 @@ func UploadToCurse(args UploadCurseArgs) error {
 		displayName: args.FileLabel,
 		changelog:   args.Changelog,
 		releaseType: releaseType,
+		logGroup:    logGroup,
 	}
 
 	if err := curseUpload.lookupCurseToken(); err != nil {
-		logger.Info("Skipping CurseForge upload: %s", err)
+		logGroup.Info("Skipping CurseForge upload: %s", err)
 		return nil
 	}
 
 	gameVersions := toc.GetGameVersions()
 
 	if err := curseUpload.validateGameVersions(gameVersions); err != nil {
-		logger.Error("Could not validate game versions: %v", err)
+		logGroup.Error("Could not validate game versions: %v", err)
 		return err
 	}
 
