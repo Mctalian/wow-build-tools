@@ -50,7 +50,11 @@ var curseCmd = &cobra.Command{
 				logger.Error("Could not write to temporary changelog file: %v", err)
 				return err
 			}
-			tmpChangelog.Sync()
+			err = tmpChangelog.Sync()
+			if err != nil {
+				logger.Error("Could not sync temporary changelog file: %v", err)
+				return err
+			}
 
 			changelogPath = tmpChangelog.Name()
 		}
@@ -71,7 +75,11 @@ var curseCmd = &cobra.Command{
 			logger.Error("Could not write to temporary TOC file: %v", err)
 			return err
 		}
-		tmpToc.Sync()
+		err = tmpToc.Sync()
+		if err != nil {
+			logger.Error("Could not sync temporary TOC file: %v", err)
+			return err
+		}
 
 		tocFile, err := toc.NewToc(tmpToc.Name())
 		if err != nil {
@@ -112,5 +120,8 @@ func init() {
 	// is called directly, e.g.:
 
 	curseCmd.Flags().StringVarP(&f.CurseId, "curseId", "p", "", "Set the CurseForge project ID for localization and uploading. (Use 0 to unset the TOC value)")
-	curseCmd.MarkFlagRequired("curseId")
+	err := curseCmd.MarkFlagRequired("curseId")
+	if err != nil {
+		panic(err)
+	}
 }

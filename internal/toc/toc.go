@@ -105,7 +105,7 @@ func DetermineProjectName(tocFiles []string) string {
 	projectName := ""
 	for _, tocFile := range tocFiles {
 		tocFilePath := filepath.Base(tocFile)
-		var flavor GameFlavor = Unknown
+		var flavor GameFlavor
 		noExt := strings.TrimSuffix(tocFilePath, filepath.Ext(tocFilePath))
 
 		if !strings.Contains(noExt, "-") && !strings.Contains(noExt, "_") {

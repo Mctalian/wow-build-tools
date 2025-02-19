@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/McTalian/wow-build-tools/internal/repo"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyManualChangelog(t *testing.T) {
@@ -43,7 +44,8 @@ func TestVerifyManualChangelog(t *testing.T) {
 				topDir := t.TempDir()
 				pkgDir := t.TempDir()
 				filePath := filepath.Join(topDir, "CHANGELOG.md")
-				os.WriteFile(filePath, []byte("changelog content"), 0644)
+				err := os.WriteFile(filePath, []byte("changelog content"), 0644)
+				require.NoError(t, err)
 				return topDir, pkgDir
 			},
 			expectedError: nil,
@@ -56,9 +58,11 @@ func TestVerifyManualChangelog(t *testing.T) {
 				topDir := t.TempDir()
 				pkgDir := t.TempDir()
 				topDirFilePath := filepath.Join(topDir, "CHANGELOG.md")
-				os.WriteFile(topDirFilePath, []byte("topdir changelog content"), 0644)
+				err := os.WriteFile(topDirFilePath, []byte("topdir changelog content"), 0644)
+				require.NoError(t, err)
 				filePath := filepath.Join(pkgDir, "CHANGELOG.md")
-				os.WriteFile(filePath, []byte("changelog content"), 0644)
+				err = os.WriteFile(filePath, []byte("changelog content"), 0644)
+				require.NoError(t, err)
 				return topDir, pkgDir
 			},
 			expectedError: nil,
@@ -71,7 +75,8 @@ func TestVerifyManualChangelog(t *testing.T) {
 				topDir := t.TempDir()
 				pkgDir := t.TempDir()
 				filePath := filepath.Join(topDir, "CHANGELOG.md")
-				os.WriteFile(filePath, []byte("changelog content"), 0644)
+				err := os.WriteFile(filePath, []byte("changelog content"), 0644)
+				require.NoError(t, err)
 				return topDir, pkgDir
 			},
 			expectedError: ErrInvalidMarkupType,
@@ -113,7 +118,8 @@ func TestGetChangelog(t *testing.T) {
 				topDir := t.TempDir()
 				pkgDir := t.TempDir()
 				filePath := filepath.Join(pkgDir, "CHANGELOG.md")
-				os.WriteFile(filePath, []byte("changelog content"), 0644)
+				err := os.WriteFile(filePath, []byte("changelog content"), 0644)
+				require.NoError(t, err)
 				return topDir, pkgDir, nil
 			},
 			expectedError: nil,
@@ -127,7 +133,8 @@ func TestGetChangelog(t *testing.T) {
 				topDir := t.TempDir()
 				pkgDir := t.TempDir()
 				filePath := filepath.Join(topDir, "CHANGELOG.md")
-				os.WriteFile(filePath, []byte("changelog content"), 0644)
+				err := os.WriteFile(filePath, []byte("changelog content"), 0644)
+				require.NoError(t, err)
 				return topDir, pkgDir, nil
 			},
 			expectedError: nil,

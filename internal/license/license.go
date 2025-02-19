@@ -41,7 +41,10 @@ func downloadLicense(curseProjectId string) (string, error) {
 		if node.Type == html.ElementNode && node.Data == "p" {
 			var buf strings.Builder
 			for c := node.FirstChild; c != nil; c = c.NextSibling {
-				html.Render(&buf, c)
+				err = html.Render(&buf, c)
+				if err != nil {
+					return "", err
+				}
 			}
 			raw := buf.String()
 			//&lt;year&gt; &lt;copyright holders&gt

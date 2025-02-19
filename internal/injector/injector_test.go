@@ -10,6 +10,7 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/repo"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewInjector(t *testing.T) {
@@ -67,9 +68,11 @@ func TestInjector_FindAndReplaceInFile(t *testing.T) {
 	f, err := os.CreateTemp(".", "file*.txt")
 	name := f.Name()
 	filePath := filepath.Join(".", name)
-	assert.NoError(t, err)
-	f.WriteString("@build-date@")
-	assert.NoError(t, f.Close())
+	require.NoError(t, err)
+	_, err = f.WriteString("@build-date@")
+	require.NoError(t, err)
+
+	require.NoError(t, f.Close())
 	tests := []struct {
 		name        string
 		filePath    string
@@ -257,20 +260,21 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 			f, err := os.CreateTemp(".", "file*"+tt.extension)
 			name := f.Name()
 			filePath := filepath.Join(".", name)
-			assert.NoError(t, err)
-			f.WriteString(tt.contents)
-			assert.NoError(t, f.Close())
+			require.NoError(t, err)
+			_, err = f.WriteString(tt.contents)
+			require.NoError(t, err)
+			require.NoError(t, f.Close())
 
 			vcsRepo := &repo.MockVcsRepo{}
 			injector, err := NewInjector(tokens.SimpleTokenMap{
 				tokens.BuildDate: "value1",
 			}, vcsRepo, ".", tt.bTTM)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			injector.logGroup = logger.NewLogGroup("💉 Injecting tokens into package directory")
 
 			err = injector.findAndReplaceInFile(filePath)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			contents, err := os.ReadFile(filePath)
 			assert.NoError(t, err)

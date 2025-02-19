@@ -35,7 +35,10 @@ func Output(name, value string) error {
 		}
 		defer f.Close()
 
-		f.WriteString(fmt.Sprintf("%s=%s\n", name, value))
+		_, err = f.WriteString(fmt.Sprintf("%s=%s\n", name, value))
+		if err != nil {
+			return fmt.Errorf("failed to write output: %w", err)
+		}
 	}
 
 	return nil

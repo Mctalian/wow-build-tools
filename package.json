@@ -4,12 +4,12 @@
   "author": "Rob 'McTalian' Anderson",
   "license": "MIT",
   "devDependencies": {
-    "@semantic-release/changelog": "github:semantic-release/changelog",
-    "@semantic-release/commit-analyzer": "github:semantic-release/commit-analyzer",
-    "@semantic-release/git": "github:semantic-release/git",
-    "@semantic-release/github": "github:semantic-release/github",
-    "@semantic-release/release-notes-generator": "github:semantic-release/release-notes-generator",
-    "conventional-changelog-conventionalcommits": "^8.0.0",
-    "semantic-release": "^24.2.1"
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/github": "11.0.1",
+    "@semantic-release/release-notes-generator": "14.0.3",
+    "conventional-changelog-conventionalcommits": "8.0.0",
+    "semantic-release": "24.2.3"
   }
 }

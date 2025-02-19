@@ -8,17 +8,17 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/external"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/repo"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClearDestDir(t *testing.T) {
 	testDir := "testdir"
-	os.Mkdir(testDir, 0755)
+	err := os.Mkdir(testDir, 0755)
+	require.NoError(t, err)
 	defer os.RemoveAll(testDir)
 
-	err := clearDestDir(testDir)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	err = clearDestDir(testDir)
+	require.NoError(t, err)
 
 	if _, err := os.Stat(testDir); !os.IsNotExist(err) {
 		t.Fatalf("Expected directory to be removed")
@@ -45,10 +45,11 @@ func TestCopyFromCacheToPackageDir(t *testing.T) {
 	defer os.RemoveAll(destDir)
 	defer os.RemoveAll(cacheDir)
 
-	os.Mkdir(cacheDir, 0755)
+	err := os.Mkdir(cacheDir, 0755)
+	require.NoError(t, err)
 	logGroup := logger.NewLogGroup("test")
 
-	err := copyFromCacheToPackageDir(destDir, cacheDir, logGroup)
+	err = copyFromCacheToPackageDir(destDir, cacheDir, logGroup)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -64,7 +65,9 @@ func TestCopyExternal(t *testing.T) {
 	defer os.RemoveAll(packageDir)
 	defer os.RemoveAll(cacheDir)
 
-	os.Mkdir(cacheDir, 0755)
+	err := os.Mkdir(cacheDir, 0755)
+	require.NoError(t, err)
+
 	logGroup := logger.NewLogGroup("test")
 	externalEntry := &external.ExternalEntry{
 		RepoCacheDir: cacheDir,
@@ -72,7 +75,7 @@ func TestCopyExternal(t *testing.T) {
 		LogGroup:     logGroup,
 	}
 
-	err := copyExternal(externalEntry, packageDir)
+	err = copyExternal(externalEntry, packageDir)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -89,12 +92,14 @@ func TestCopyToPackageDir(t *testing.T) {
 	defer os.RemoveAll(topDir)
 	defer os.RemoveAll(packageDir)
 
-	os.Mkdir(topDir, 0755)
+	err := os.Mkdir(topDir, 0755)
+	require.NoError(t, err)
+
 	logGroup := logger.NewLogGroup("test")
 	vR := repo.BaseVcsRepo{}
 	pkgCopy := NewPkgCopy(topDir, packageDir, []string{}, &vR)
 
-	err := pkgCopy.CopyToPackageDir(logGroup)
+	err = pkgCopy.CopyToPackageDir(logGroup)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

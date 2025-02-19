@@ -27,15 +27,15 @@ var ErrNoCurseApiKey = fmt.Errorf("CF_API_KEY not set")
 var curseApiUrl = "https://wow.curseforge.com/api/"
 var curseGameVersionsUrl = fmt.Sprintf("%sgame/wow/versions", curseApiUrl)
 
-type curseGameVersionTypeId int
+// type curseGameVersionTypeId int
 
-const (
-	classic curseGameVersionTypeId = 67408
-	bcc     curseGameVersionTypeId = 73246
-	wrath   curseGameVersionTypeId = 73713
-	cata    curseGameVersionTypeId = 77522
-	retail  curseGameVersionTypeId = 517
-)
+// const (
+// 	classic curseGameVersionTypeId = 67408
+// 	bcc     curseGameVersionTypeId = 73246
+// 	wrath   curseGameVersionTypeId = 73713
+// 	cata    curseGameVersionTypeId = 77522
+// 	retail  curseGameVersionTypeId = 517
+// )
 
 type curseReleaseType string
 
@@ -200,6 +200,9 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 		DisplayName:   c.displayName,
 		ReleaseType:   c.releaseType,
 		GameVersions:  c.gameVersions,
+		Relations: curseRelations{
+			Projects: projects,
+		},
 	}
 
 	jsonPayload, err := json.Marshal(&payload)

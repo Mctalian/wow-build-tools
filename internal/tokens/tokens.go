@@ -145,12 +145,12 @@ var allTokens = uniqueTokens(
 	),
 )
 
-var allFlags = []FlagToken{
-	AlphaFlag,
-	BetaFlag,
-	NoLibFlag,
-	ClassicFlag,
-}
+// var allFlags = []FlagToken{
+// 	AlphaFlag,
+// 	BetaFlag,
+// 	NoLibFlag,
+// 	ClassicFlag,
+// }
 
 func IsValidToken(token string) bool {
 	if token == "" {

@@ -49,7 +49,11 @@ var wowiCmd = &cobra.Command{
 				logger.Error("Could not write to temporary changelog file: %v", err)
 				return err
 			}
-			tmpChangelog.Sync()
+			err = tmpChangelog.Sync()
+			if err != nil {
+				logger.Error("Could not sync temporary changelog file: %v", err)
+				return err
+			}
 
 			changelogPath = tmpChangelog.Name()
 		}
@@ -70,7 +74,11 @@ var wowiCmd = &cobra.Command{
 			logger.Error("Could not write to temporary TOC file: %v", err)
 			return err
 		}
-		tmpToc.Sync()
+		err = tmpToc.Sync()
+		if err != nil {
+			logger.Error("Could not sync temporary TOC file: %v", err)
+			return err
+		}
 
 		tocFile, err := toc.NewToc(tmpToc.Name())
 		if err != nil {
@@ -109,7 +117,13 @@ func init() {
 	// is called directly, e.g.:
 	// wowiCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	wowiCmd.Flags().StringVarP(&f.WowiId, "wowiId", "w", "", "Set the WoW Interface project ID for uploading. (Use 0 to unset the TOC value)")
-	wowiCmd.MarkFlagRequired("wowiId")
+	err := wowiCmd.MarkFlagRequired("wowiId")
+	if err != nil {
+		panic(err)
+	}
 	wowiCmd.Flags().StringVar(&f.UploadProjectVersion, "project-version", "", "Set the project version for uploading")
-	wowiCmd.MarkFlagRequired("project-version")
+	err = wowiCmd.MarkFlagRequired("project-version")
+	if err != nil {
+		panic(err)
+	}
 }

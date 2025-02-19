@@ -181,7 +181,11 @@ var buildCmd = &cobra.Command{
 			tokens.BuildDateInteger: buildDateInteger,
 			tokens.BuildYear:        buildYear,
 		}
-		github.Output(string(tokens.PackageName), tokenMap[tokens.PackageName])
+		err = github.Output(string(tokens.PackageName), tokenMap[tokens.PackageName])
+		if err != nil {
+			logger.Error("Output Error: %v", err)
+			return err
+		}
 
 		flags := tokens.FlagMap{
 			tokens.NoLibFlag:   "",
@@ -261,9 +265,8 @@ var buildCmd = &cobra.Command{
 			default:
 				bTTM[tokens.Retail] = true
 			}
-		} else {
-			// TODO: Handle multiple game versions
 		}
+		// TODO: Handle multiple game versions
 
 		logger.Verbose("%s", tokenMap.String())
 		i, err := injector.NewInjector(tokenMap, vR, packageDir, bTTM)
@@ -304,7 +307,11 @@ var buildCmd = &cobra.Command{
 			}
 		}
 
-		github.Output(string(tokens.ProjectVersion), tokenMap[tokens.ProjectVersion])
+		err = github.Output(string(tokens.ProjectVersion), tokenMap[tokens.ProjectVersion])
+		if err != nil {
+			logger.Error("Output Error: %v", err)
+			return err
+		}
 
 		isNoLib := f.CreateNoLib || pkgMeta.EnableNoLibCreation
 
@@ -335,7 +342,11 @@ var buildCmd = &cobra.Command{
 					zipErrChan <- err
 					return
 				}
-				github.Output("main-zip-path", zipPath)
+				err = github.Output("main-zip-path", zipPath)
+				if err != nil {
+					zipErrChan <- err
+					return
+				}
 			}()
 
 			if isNoLib && !templateTokens.HasNoLib {
@@ -354,7 +365,11 @@ var buildCmd = &cobra.Command{
 						zipErrChan <- err
 						return
 					}
-					github.Output("nolib-zip-path", zipPath)
+					err = github.Output("nolib-zip-path", zipPath)
+					if err != nil {
+						zipErrChan <- err
+						return
+					}
 				}()
 			}
 

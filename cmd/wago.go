@@ -49,7 +49,11 @@ var wagoCmd = &cobra.Command{
 				logger.Error("Could not write to temporary changelog file: %v", err)
 				return err
 			}
-			tmpChangelog.Sync()
+			err = tmpChangelog.Sync()
+			if err != nil {
+				logger.Error("Could not sync temporary changelog file: %v", err)
+				return err
+			}
 
 			changelogPath = tmpChangelog.Name()
 		}
@@ -70,7 +74,11 @@ var wagoCmd = &cobra.Command{
 			logger.Error("Could not write to temporary TOC file: %v", err)
 			return err
 		}
-		tmpToc.Sync()
+		err = tmpToc.Sync()
+		if err != nil {
+			logger.Error("Could not sync temporary TOC file: %v", err)
+			return err
+		}
 
 		tocFile, err := toc.NewToc(tmpToc.Name())
 		if err != nil {
@@ -108,5 +116,8 @@ func init() {
 	// is called directly, e.g.:
 	// wagoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	wagoCmd.Flags().StringVarP(&f.WagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
-	wagoCmd.MarkFlagRequired("wagoId")
+	err := wagoCmd.MarkFlagRequired("wagoId")
+	if err != nil {
+		panic(err)
+	}
 }

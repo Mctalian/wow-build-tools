@@ -16,7 +16,7 @@ body:
     attributes:
       label: Summary
       description: A short summary of the bug.
-      placeholder: "e.g. The command '...' fails with error '...'"
+      placeholder: e.g. The command '...' fails with error '...'
     validations:
       required: true
   - type: textarea
@@ -35,7 +35,7 @@ body:
     attributes:
       label: Expected Behavior
       description: What did you expect to happen?
-      placeholder: "Describe what should happen instead."
+      placeholder: Describe what should happen instead.
     validations:
       required: true
   - type: textarea
@@ -43,7 +43,7 @@ body:
     attributes:
       label: Actual Behavior
       description: What actually happened?
-      placeholder: "Describe what happened instead."
+      placeholder: Describe what happened instead.
     validations:
       required: true
   - type: textarea
@@ -56,4 +56,4 @@ body:
     attributes:
       label: Additional Information
       description: Any additional context, screenshots, or logs.
-      placeholder: "Add any other context about the problem here."
+      placeholder: Add any other context about the problem here.

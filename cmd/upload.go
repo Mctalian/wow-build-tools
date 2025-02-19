@@ -34,14 +34,29 @@ func init() {
 	// and all subcommands, e.g.:
 	// uploadCmd.PersistentFlags().String("foo", "", "A help for foo")
 	uploadCmd.PersistentFlags().StringVarP(&cliflags.UploadInput, "input", "i", "", "Path to the addon zip file to upload")
-	uploadCmd.MarkPersistentFlagFilename("input")
-	uploadCmd.MarkPersistentFlagRequired("input")
+	err := uploadCmd.MarkPersistentFlagFilename("input")
+	if err != nil {
+		panic(err)
+	}
+	err = uploadCmd.MarkPersistentFlagRequired("input")
+	if err != nil {
+		panic(err)
+	}
 	uploadCmd.PersistentFlags().StringVarP(&cliflags.UploadLabel, "label", "l", "", "Label for the uploaded file")
-	uploadCmd.MarkPersistentFlagRequired("label")
+	err = uploadCmd.MarkPersistentFlagRequired("label")
+	if err != nil {
+		panic(err)
+	}
 	uploadCmd.PersistentFlags().IntSliceVar(&cliflags.UploadInterfaceVersions, "interface-versions", []int{}, "Interface versions that your addon supports.")
-	uploadCmd.MarkPersistentFlagRequired("interface-versions")
+	err = uploadCmd.MarkPersistentFlagRequired("interface-versions")
+	if err != nil {
+		panic(err)
+	}
 	uploadCmd.PersistentFlags().StringVarP(&cliflags.UploadChangelog, "changelog", "c", "", "Path to the changelog file")
-	uploadCmd.MarkPersistentFlagFilename("changelog")
+	err = uploadCmd.MarkPersistentFlagFilename("changelog")
+	if err != nil {
+		panic(err)
+	}
 	uploadCmd.PersistentFlags().StringVarP(&cliflags.UploadReleaseType, "release-type", "r", "alpha", "Release type for the uploaded file")
 
 	// Cobra supports local flags which will only run when this command

@@ -59,8 +59,6 @@ func TypeColor(t VcsType) string {
 	}
 }
 
-var externalLogger = logger.GetSubLog("EXT")
-
 // UnmarshalYAML allows ExternalEntry to handle both string and object forms.
 func (e *ExternalEntry) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {

@@ -138,7 +138,6 @@ func normalizeGameVersion(gameVersion string) error {
 		for _, version := range versions {
 			err := parseGameVersionSegment(version)
 			if err != nil {
-				gameVersion = ""
 				return err
 			}
 		}

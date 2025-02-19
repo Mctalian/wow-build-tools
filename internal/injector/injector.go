@@ -101,15 +101,15 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 			} else {
 				var findStart, findEnd, replaceStart, replaceEnd string
 				if filepath.Ext(filePath) == ".lua" {
-					findStart = fmt.Sprintf("%s", n.Normalized)
-					findEnd = fmt.Sprintf("%s", n.NormalizedEnd)
+					findStart = n.Normalized
+					findEnd = n.NormalizedEnd
 					replaceStart = fmt.Sprintf("[===[%s", n.Normalized)
 					replaceEnd = fmt.Sprintf("%s]===]", n.NormalizedEnd)
 				} else if filepath.Ext(filePath) == ".xml" {
 					findStart = fmt.Sprintf("%s-->", n.Normalized)
 					findEnd = fmt.Sprintf("<!--%s", n.NormalizedEnd)
-					replaceStart = fmt.Sprintf("%s", n.Normalized)
-					replaceEnd = fmt.Sprintf("%s", n.NormalizedEnd)
+					replaceStart = n.Normalized
+					replaceEnd = n.NormalizedEnd
 				}
 				i.logGroup.Verbose("Handled %s block (%s) in %s", token, n.Normalized, filePath)
 				output = strings.ReplaceAll(output, findStart, replaceStart)
@@ -143,11 +143,11 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 				if filepath.Ext(filePath) == ".lua" {
 					findStart = fmt.Sprintf("[===[%s", n.NormalizedNeg)
 					findEnd = fmt.Sprintf("%s]===]", n.NormalizedNegEnd)
-					replaceStart = fmt.Sprintf("%s", n.NormalizedNeg)
-					replaceEnd = fmt.Sprintf("%s", n.NormalizedNegEnd)
+					replaceStart = n.NormalizedNeg
+					replaceEnd = n.NormalizedNegEnd
 				} else if filepath.Ext(filePath) == ".xml" {
-					findStart = fmt.Sprintf("%s", n.NormalizedNeg)
-					findEnd = fmt.Sprintf("%s", n.NormalizedNegEnd)
+					findStart = n.NormalizedNeg
+					findEnd = n.NormalizedNegEnd
 					replaceStart = fmt.Sprintf("%s-->", n.NormalizedNeg)
 					replaceEnd = fmt.Sprintf("<!--%s", n.NormalizedNegEnd)
 				}
@@ -243,7 +243,10 @@ func (i *Injector) Execute() error {
 		}
 
 		if !isInjectableExtension(ext) {
-			i.ensureLineEndings(path)
+			err = i.ensureLineEndings(path)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 
