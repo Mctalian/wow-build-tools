@@ -233,7 +233,7 @@ func (w *wagoUpload) preparePayload() error {
 		SupportedPatches: w.supportMap,
 	}
 
-	jsonPayload, err := json.Marshal(payload)
+	jsonPayload, err := json.Marshal(&payload)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (w *wagoUpload) upload() error {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	w.logGroup.Info("metadata: %s", w.metadataPart)
+	w.logGroup.Verbose("metadata: %s", w.metadataPart)
 
 	if err = writer.WriteField("metadata", w.metadataPart); err != nil {
 		return fmt.Errorf("could not write metadata: %v", err)
@@ -303,6 +303,9 @@ func (w *wagoUpload) upload() error {
 				w.logGroup.Warn("failed to decode response body: %v", err)
 			} else {
 				w.logGroup.Warn("Response: %v", jsonBody)
+			}
+			if resp.StatusCode == http.StatusUnprocessableEntity {
+				return fmt.Errorf("upload failed: %s", resp.Status)
 			}
 		}
 
@@ -366,6 +369,7 @@ func UploadToWago(args UploadWagoArgs) error {
 		displayName:    args.FileLabel,
 		changelog:      args.Changelog,
 		stabilityValue: stabilityValue,
+		supportMap:     make(map[string][]string),
 		logGroup:       logGroup,
 	}
 

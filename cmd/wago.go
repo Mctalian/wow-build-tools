@@ -11,20 +11,19 @@ import (
 	"github.com/McTalian/wow-build-tools/internal/changelog"
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
-	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 	"github.com/McTalian/wow-build-tools/internal/upload"
 	"github.com/spf13/cobra"
 )
 
-// curseCmd represents the curse command
-var curseCmd = &cobra.Command{
-	Use:   "curse",
-	Short: "Upload the specified file to CurseForge",
-	Long: `Upload the input zip file to CurseForge.
+// wagoCmd represents the wago command
+var wagoCmd = &cobra.Command{
+	Use:   "wago",
+	Short: "Upload the specified file to Wago.io",
+	Long: `Upload the input zip file to Wago.io.
 	
-	Input, label, interface versions, and CurseForge project ID are required.
-	The CF_API_KEY environment variable must also be set.`,
+	Input, label, and Wago.io project ID are required.
+	The WAGO_API_TOKEN environment variable must also be set.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		tmp := os.TempDir()
 		tmpToc, err := os.CreateTemp(tmp, "wbt*.toc")
@@ -79,36 +78,33 @@ var curseCmd = &cobra.Command{
 			return
 		}
 
-		pkgMeta := &pkg.PkgMeta{}
-
-		curseArgs := upload.UploadCurseArgs{
-			TocFiles:    []*toc.Toc{tocFile},
+		wagoArgs := upload.UploadWagoArgs{
 			ZipPath:     f.UploadInput,
 			FileLabel:   f.UploadLabel,
-			PkgMeta:     pkgMeta,
-			Changelog:   changelog,
 			ReleaseType: f.UploadReleaseType,
+			TocFiles:    []*toc.Toc{tocFile},
+			Changelog:   changelog,
 		}
 
-		err = upload.UploadToCurse(curseArgs)
+		err = upload.UploadToWago(wagoArgs)
 		if err != nil {
-			logger.Error("Could not upload to curse: %v", err)
+			logger.Error("Could not upload to wago: %v", err)
 			return
 		}
 	},
 }
 
 func init() {
-	uploadCmd.AddCommand(curseCmd)
+	uploadCmd.AddCommand(wagoCmd)
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// curseCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// wagoCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-
-	curseCmd.Flags().StringVarP(&f.CurseId, "curseId", "p", "", "Set the CurseForge project ID for localization and uploading. (Use 0 to unset the TOC value)")
-	curseCmd.MarkFlagRequired("curseId")
+	// wagoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	wagoCmd.Flags().StringVarP(&f.WagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
+	wagoCmd.MarkFlagRequired("wagoId")
 }

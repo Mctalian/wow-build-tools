@@ -35,13 +35,6 @@ var buildCmd = &cobra.Command{
 	Long:  `This command packages the addon as specified via a pkgmeta file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
-		if LevelVerbose {
-			logger.SetLogLevel(logger.VERBOSE)
-		} else if LevelDebug {
-			logger.SetLogLevel(logger.DEBUG)
-		} else {
-			logger.SetLogLevel(logger.INFO)
-		}
 
 		err := toc.ParseGameVersionFlag()
 		if err != nil {

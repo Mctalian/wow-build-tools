@@ -6,6 +6,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +42,16 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&LevelVerbose, "verbose", "V", false, "Enable verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&LevelDebug, "debug", "v", false, "Enable debug output")
 
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if LevelVerbose {
+			logger.SetLogLevel(logger.VERBOSE)
+		} else if LevelDebug {
+			logger.SetLogLevel(logger.DEBUG)
+		} else {
+			logger.SetLogLevel(logger.INFO)
+		}
+		return nil
+	}
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")

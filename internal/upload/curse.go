@@ -73,6 +73,33 @@ type cursePayload struct {
 	Relations     curseRelations       `json:"relations"`
 }
 
+func (c *cursePayload) MarshalJSON() ([]byte, error) {
+	type Alias cursePayload
+	alias := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+
+	data, err := json.Marshal(alias)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	if len(c.Relations.Projects) > 0 {
+		result["relations"] = c.Relations
+	} else {
+		delete(result, "relations")
+	}
+
+	return json.Marshal(result)
+}
+
 type curseUpload struct {
 	projectId    string
 	token        string
@@ -175,13 +202,7 @@ func (c *curseUpload) preparePayload(pkgMeta *pkg.PkgMeta) (err error) {
 		GameVersions:  c.gameVersions,
 	}
 
-	if len(projects) > 0 {
-		payload.Relations = curseRelations{
-			Projects: projects,
-		}
-	}
-
-	jsonPayload, err := json.Marshal(payload)
+	jsonPayload, err := json.Marshal(&payload)
 	if err != nil {
 		return
 	}
@@ -265,7 +286,7 @@ func (c *curseUpload) upload() (err error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	c.logGroup.Info("metadata: %s", c.metadataPart)
+	c.logGroup.Verbose("metadata: %s", c.metadataPart)
 
 	// Add metadata part as a form field
 	if err = writer.WriteField("metadata", c.metadataPart); err != nil {
@@ -320,6 +341,9 @@ func (c *curseUpload) upload() (err error) {
 				c.logGroup.Warn("failed to decode response body: %v", err)
 			} else {
 				c.logGroup.Warn("response body: %v", jsonBody)
+			}
+			if resp.StatusCode == http.StatusBadRequest {
+				return fmt.Errorf("upload failed: %s", resp.Status)
 			}
 		}
 

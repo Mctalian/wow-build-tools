@@ -24,3 +24,5 @@ var NameTemplate string
 var UploadInput string
 var UploadLabel string
 var UploadInterfaceVersions []int
+var UploadChangelog string
+var UploadReleaseType string
