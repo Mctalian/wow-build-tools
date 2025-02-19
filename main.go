@@ -13,11 +13,7 @@ import (
 )
 
 func main() {
-	if err := secrets.LoadSecrets(); err != nil {
-		logger.Error("Could not load secrets: %v", err)
-		os.Exit(1)
-	}
-
+	secrets.LoadSecrets()
 	logger.InitLogger()
 	if os.Getenv("CI") == "true" {
 		logger.Verbose("Running in CI environment, no automatic updates will be performed")

@@ -5,6 +5,6 @@ import (
 )
 
 // LoadSecrets loads secrets from a .env file into the environment.
-func LoadSecrets() error {
-	return godotenv.Load()
+func LoadSecrets() {
+	_ = godotenv.Load()
 }
