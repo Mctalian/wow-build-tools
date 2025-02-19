@@ -2,7 +2,8 @@ name: Feature Request
 description: Suggest a new feature or enhancement for wow-build-tools
 title: "[Feat Req] "
 labels: enhancement
-assignees: ""
+assignees:
+  - McTalian
 
 body:
   - type: markdown

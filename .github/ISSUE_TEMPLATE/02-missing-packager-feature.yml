@@ -2,7 +2,8 @@ name: Missing Packager Feature
 description: Report missing functionality from BigWigsMods/packager in wow-build-tools
 title: "[Feat Imparity] "
 labels: bug, enhancement
-assignees: ""
+assignees:
+  - McTalian
 
 body:
   - type: markdown

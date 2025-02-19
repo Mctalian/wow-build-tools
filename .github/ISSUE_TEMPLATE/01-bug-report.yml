@@ -3,6 +3,9 @@ description: Create a report to help us fix a bug in the project.
 title: "[Bug]: "
 labels:
   - bug
+assignees:
+  - McTalian
+
 body:
   - type: markdown
     attributes:
@@ -14,6 +17,7 @@ body:
       label: Summary
       description: A short summary of the bug.
       placeholder: "e.g. The command '...' fails with error '...'"
+    validations:
       required: true
   - type: textarea
     id: steps-to-reproduce
@@ -24,6 +28,7 @@ body:
         1. Go to '...'
         2. Click on '...'
         3. Observe the error
+    validations:
       required: true
   - type: textarea
     id: expected-behavior
@@ -31,6 +36,7 @@ body:
       label: Expected Behavior
       description: What did you expect to happen?
       placeholder: "Describe what should happen instead."
+    validations:
       required: true
   - type: textarea
     id: actual-behavior
@@ -38,6 +44,7 @@ body:
       label: Actual Behavior
       description: What actually happened?
       placeholder: "Describe what happened instead."
+    validations:
       required: true
   - type: textarea
     id: input-files
