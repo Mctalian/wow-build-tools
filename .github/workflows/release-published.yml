@@ -113,13 +113,6 @@ jobs:
           echo "Zipping ${binaryFile} to ${zipFile}"
           zip -j ${zipFile} ${binaryFile}
 
-      - name: Upload linux x64 binary
-        if: ${{ matrix.goos == 'linux' && matrix.goarch == 'amd64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: bin-${{ env.CMD }}_linux_amd64
-          path: build/${{ env.CMD }}_linux_amd64
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -180,19 +173,24 @@ jobs:
       - name: Download binary
         uses: actions/download-artifact@v4
         with:
-          name: bin-${{ env.CMD }}_linux_amd64
+          name: zip-${{ env.CMD }}_linux_amd64
+
+      - name: Extract the linux binary
+        run: |
+          mkdir -p ./bin
+          unzip -j ${{ env.CMD }}_linux_amd64.zip -d ./bin
 
       - name: Upload to CurseForge
         if: ${{ matrix.distro == 'curse' }}
         run: |
-          ${{ env.CMD }}_linux_amd64 upload curse -p ${{ env.CURSE_ID }} ${{ env.COMMON_ARGS }}
+          ./bin/${{ env.CMD }}_linux_amd64 upload curse -p ${{ env.CURSE_ID }} ${{ env.COMMON_ARGS }}
 
       - name: Upload to Wago
         if: ${{ matrix.distro == 'wago' }}
         run: |
-          ${{ env.CMD }}_linux_amd64 upload wago -a ${{ env.WAGO_ID }} ${{ env.COMMON_ARGS }}
+          ./bin/${{ env.CMD }}_linux_amd64 upload wago -a ${{ env.WAGO_ID }} ${{ env.COMMON_ARGS }}
 
       - name: Upload to WoWInterface
         if: ${{ matrix.distro == 'wowi' }}
         run: |
-          ${{ env.CMD }}_linux_amd64 upload wowi -w ${{ env.WOWI_ID }} ${{ env.COMMON_ARGS }} --project-version=${{ github.ref_name }}
+          ./bin/${{ env.CMD }}_linux_amd64 upload wowi -w ${{ env.WOWI_ID }} ${{ env.COMMON_ARGS }} --project-version=${{ github.ref_name }}
