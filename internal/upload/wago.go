@@ -304,7 +304,7 @@ func (w *wagoUpload) upload() error {
 			} else {
 				w.logGroup.Warn("Response: %v", jsonBody)
 			}
-			if resp.StatusCode == http.StatusUnprocessableEntity {
+			if resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusBadRequest {
 				return fmt.Errorf("upload failed: %s", resp.Status)
 			}
 		}

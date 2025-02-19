@@ -342,7 +342,7 @@ func (c *curseUpload) upload() (err error) {
 			} else {
 				c.logGroup.Warn("response body: %v", jsonBody)
 			}
-			if resp.StatusCode == http.StatusBadRequest {
+			if resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusBadRequest {
 				return fmt.Errorf("upload failed: %s", resp.Status)
 			}
 		}

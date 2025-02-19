@@ -26,3 +26,4 @@ var UploadLabel string
 var UploadInterfaceVersions []int
 var UploadChangelog string
 var UploadReleaseType string
+var UploadProjectVersion string

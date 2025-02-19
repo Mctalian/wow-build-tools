@@ -25,12 +25,12 @@ var curseCmd = &cobra.Command{
 	
 	Input, label, interface versions, and CurseForge project ID are required.
 	The CF_API_KEY environment variable must also be set.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		tmp := os.TempDir()
 		tmpToc, err := os.CreateTemp(tmp, "wbt*.toc")
 		if err != nil {
 			logger.Error("Could not create temporary TOC file: %v", err)
-			return
+			return err
 		}
 		defer os.Remove(tmpToc.Name())
 		defer tmpToc.Close()
@@ -40,7 +40,7 @@ var curseCmd = &cobra.Command{
 			tmpChangelog, err := os.CreateTemp(tmp, "wbtChangelog*.md")
 			if err != nil {
 				logger.Error("Could not create temporary changelog file: %v", err)
-				return
+				return err
 			}
 			defer os.Remove(tmpChangelog.Name())
 			defer tmpChangelog.Close()
@@ -48,7 +48,7 @@ var curseCmd = &cobra.Command{
 			_, err = tmpChangelog.WriteString("No changelog provided")
 			if err != nil {
 				logger.Error("Could not write to temporary changelog file: %v", err)
-				return
+				return err
 			}
 			tmpChangelog.Sync()
 
@@ -69,14 +69,14 @@ var curseCmd = &cobra.Command{
 		_, err = tmpToc.WriteString(fmt.Sprintf("## Interface: %s", interfaceString))
 		if err != nil {
 			logger.Error("Could not write to temporary TOC file: %v", err)
-			return
+			return err
 		}
 		tmpToc.Sync()
 
 		tocFile, err := toc.NewToc(tmpToc.Name())
 		if err != nil {
 			logger.Error("Could not create TOC file: %v", err)
-			return
+			return err
 		}
 
 		pkgMeta := &pkg.PkgMeta{}
@@ -93,8 +93,10 @@ var curseCmd = &cobra.Command{
 		err = upload.UploadToCurse(curseArgs)
 		if err != nil {
 			logger.Error("Could not upload to curse: %v", err)
-			return
+			return err
 		}
+
+		return nil
 	},
 }
 

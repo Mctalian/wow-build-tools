@@ -16,14 +16,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// wagoCmd represents the wago command
-var wagoCmd = &cobra.Command{
-	Use:   "wago",
-	Short: "Upload the specified file to Wago.io",
-	Long: `Upload the input zip file to Wago.io.
+// wowiCmd represents the wowi command
+var wowiCmd = &cobra.Command{
+	Use:   "wowi",
+	Short: "Upload the specified file to WoWInterface",
+	Long: `Upload the input zip file to WoWInterface.
 	
-	Input, label, and Wago.io project ID are required.
-	The WAGO_API_TOKEN environment variable must also be set.`,
+	Input, label, and WoWInterface project ID are required.
+	The WOWI_API_TOKEN environment variable must also be set.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		tmp := os.TempDir()
 		tmpToc, err := os.CreateTemp(tmp, "wbt*.toc")
@@ -78,17 +78,17 @@ var wagoCmd = &cobra.Command{
 			return err
 		}
 
-		wagoArgs := upload.UploadWagoArgs{
-			ZipPath:     f.UploadInput,
-			FileLabel:   f.UploadLabel,
-			ReleaseType: f.UploadReleaseType,
-			TocFiles:    []*toc.Toc{tocFile},
-			Changelog:   changelog,
+		w := upload.UploadWowiArgs{
+			TocFiles:       []*toc.Toc{tocFile},
+			ProjectVersion: f.UploadProjectVersion,
+			ZipPath:        f.UploadInput,
+			FileLabel:      f.UploadLabel,
+			Changelog:      changelog,
 		}
 
-		err = upload.UploadToWago(wagoArgs)
+		err = upload.UploadToWowi(w)
 		if err != nil {
-			logger.Error("Could not upload to wago: %v", err)
+			logger.Error("Could not upload to WoWInterface: %v", err)
 			return err
 		}
 
@@ -97,16 +97,19 @@ var wagoCmd = &cobra.Command{
 }
 
 func init() {
-	uploadCmd.AddCommand(wagoCmd)
+	uploadCmd.AddCommand(wowiCmd)
+
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// wagoCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// wowiCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// wagoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	wagoCmd.Flags().StringVarP(&f.WagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
-	wagoCmd.MarkFlagRequired("wagoId")
+	// wowiCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	wowiCmd.Flags().StringVarP(&f.WowiId, "wowiId", "w", "", "Set the WoW Interface project ID for uploading. (Use 0 to unset the TOC value)")
+	wowiCmd.MarkFlagRequired("wowiId")
+	wowiCmd.Flags().StringVar(&f.UploadProjectVersion, "project-version", "", "Set the project version for uploading")
+	wowiCmd.MarkFlagRequired("project-version")
 }

@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
 	f "github.com/McTalian/wow-build-tools/internal/cliflags"
@@ -176,6 +179,89 @@ func (w *wowiUpload) upload() error {
 		if err = writer.WriteField("archive", "No"); err != nil {
 			return fmt.Errorf("could not write archive: %v", err)
 		}
+	}
+
+	if w.changelog != nil {
+		if w.changelog.PreExistingFilePath != "" {
+			changelogContents, err := os.ReadFile(w.changelog.PreExistingFilePath)
+			if err != nil {
+				return fmt.Errorf("could not read changelog: %v", err)
+			}
+
+			if err = writer.WriteField("changelog", string(changelogContents)); err != nil {
+				return fmt.Errorf("could not write changelog: %v", err)
+			}
+		}
+	}
+
+	// Add the file part
+	part, err := writer.CreateFormFile("updatefile", filepath.Base(w.zipFile))
+	if err != nil {
+		return fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err = io.Copy(part, file); err != nil {
+		return fmt.Errorf("failed to copy file content: %w", err)
+	}
+
+	// Close the writer to finalize the multipart form
+	if err = writer.Close(); err != nil {
+		return fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create the POST request
+	req, err := http.NewRequest("POST", wowiUploadUrl, &body)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	// Set the proper headers
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("x-api-token", w.token)
+
+	// Prepare the HTTP client and exponential backoff parameters
+	client := &http.Client{}
+	maxAttempts := 5
+	delay := 2 * time.Second
+
+	var resp *http.Response
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		resp, err = client.Do(req)
+		if err == nil && (resp.StatusCode >= 200 && resp.StatusCode < 300) {
+			w.logGroup.Info("Successfully uploaded to WoW Interface!")
+			return nil
+		}
+
+		// Log the error details for debugging
+		if err != nil {
+			w.logGroup.Warn("upload error: %v", err)
+		} else {
+			w.logGroup.Warn("unexpected status code: %d", resp.StatusCode)
+			jsonBody := map[string]interface{}{}
+			err = json.NewDecoder(resp.Body).Decode(&jsonBody)
+			if err != nil {
+				w.logGroup.Warn("failed to decode response body: %v", err)
+			} else {
+				w.logGroup.Warn("response body: %v", jsonBody)
+			}
+			if resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusBadRequest {
+				return fmt.Errorf("upload failed: %s", resp.Status)
+			}
+		}
+
+		// If not the last attempt, wait for the delay before retrying
+		if attempt < maxAttempts {
+			w.logGroup.Warn("Retrying: Attempt %d/%d in %s...", attempt+1, maxAttempts, delay)
+			time.Sleep(delay)
+			delay *= 2 // Exponential backoff: double the delay each time
+		}
+	}
+
+	// If we exhausted our attempts, report the failure.
+	if err != nil {
+		return fmt.Errorf("upload failed after %d attempts: %v", maxAttempts, err)
+	}
+	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+		return fmt.Errorf("upload failed with status code %d", resp.StatusCode)
 	}
 
 	return nil
