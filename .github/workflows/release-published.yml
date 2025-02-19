@@ -149,3 +149,32 @@ jobs:
         with:
           name: ${{ env.CMD }}
           path: ${{ env.CMD }}.zip
+
+  distribute:
+    runs-on: ubuntu-latest
+    needs: upload-assets
+    strategy:
+      matrix:
+        distro: [curse, wago, wowi]
+    env:
+      CURSE_ID: 1198075
+      WAGO_ID: QKywW7N7
+      WOWI_ID: 26905
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
+      WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CMD }}
+
+      - name: Download binary zip
+        uses: actions/download-artifact@v4
+        with:
+          name: zip-${{ env.CMD }}_linux_amd64
+
+      - name: Check the files
+        run: |
+          ls -al .
+          echo "Tag: ${{ github.ref_name }}"
