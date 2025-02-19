@@ -1,0 +1,6 @@
+manual-changelog:
+  filename: CHANGELOG.txt
+  markup-type: text
+
+ignore:
+  - "*.txt"

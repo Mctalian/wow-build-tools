@@ -1,0 +1,87 @@
+name: WoW Build Tools
+description: Build and release your World of Warcraft addons with ease.
+branding:
+  icon: zap
+  color: blue
+
+inputs:
+  no-cache:
+    description: Pass "true" if you don't want to leverage cache for external dependencies.
+    required: false
+    default: "false"
+  args:
+    description: Arguments to pass to `wow-build-tools build`.
+    required: false
+    default: ""
+
+outputs:
+  package-name:
+    description: The name of the package that was built.
+    value: ${{ steps.wbt-build.outputs.package-name }}
+  main-zip-path:
+    description: The path to the main zip file that was built.
+    value: ${{ steps.wbt-build.outputs.main-zip-path }}
+  nolib-zip-path:
+    description: The path to the nolib zip file that was built, if applicable.
+    value: ${{ steps.wbt-build.outputs.nolib-zip-path }}
+  project-version:
+    description: The determined version of the project.
+    value: ${{ steps.wbt-build.outputs.project-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set Env
+      shell: bash
+      env:
+        tmp_action_path: ${{ github.action_path }}
+        tmp_action_ref: ${{ github.action_ref }}
+      run: |
+        echo "wbt_action_path=$tmp_action_path" >> $GITHUB_ENV
+        echo "wbt_action_ref=$tmp_action_ref" >> $GITHUB_ENV
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ env.wbt_action_path }}/go.mod
+        cache-dependency-path: |
+          ${{ env.wbt_action_path }}/go.sum
+
+    - name: Subversion check
+      id: svn-check
+      shell: bash
+      run: |
+        if ! command -v svn &> /dev/null; then
+          echo "Subversion is not installed. Installing..."
+          echo "install-svn=1" >> $GITHUB_OUTPUT
+        else
+          echo "install-svn=0" >> $GITHUB_OUTPUT
+        fi
+
+    - uses: awalsh128/cache-apt-pkgs-action@5902b33ae29014e6ca012c5d8025d4346556bd40
+      if: steps.svn-check.outputs.install-svn == '1'
+      with:
+        packages: subversion
+        version: ${{ runner.os }}-svn-${{ github.action_ref }}
+
+    - name: Build binary
+      shell: bash
+      run: |
+        cd ${{ env.wbt_action_path }}
+        go build -o ${{ github.workspace }}/wow-build-tools
+
+    - name: Cache external dependencies
+      if: ${{ inputs.no-cache != 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/.wow-build-tools
+        key: ${{ runner.os }}-wow-build-tools-${{ env.wbt_action_ref }}
+
+    - name: Run wow-build-tools
+      id: wbt-build
+      shell: bash
+      run: |
+        ./wow-build-tools build ${{ inputs.args }}
+        if [ $? -ne 0 ]; then
+          exit 1
+        fi

@@ -1,0 +1,3 @@
+package-as: TestZipNoLib
+
+enable-nolib-creation: yes
