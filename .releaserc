@@ -8,6 +8,10 @@
     {
       "name": "initial",
       "prerelease": "alpha"
+    },
+    {
+      "name": "alpha",
+      "prerelease": "alpha"
     }
   ],
   "plugins": [
