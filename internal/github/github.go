@@ -12,8 +12,13 @@ import (
 var githubApiUrl = "https://api.github.com/"
 var authHeaderValue string
 
-type releaseResponse struct {
-	Id int `json:"id"`
+type GitHubRelease struct {
+	Id         int    `json:"id"`
+	TagName    string `json:"tag_name"`
+	Name       string `json:"name"`
+	Body       string `json:"body"`
+	Draft      bool   `json:"draft"`
+	Prerelease bool   `json:"prerelease"`
 }
 
 func getAuthHeaderValue() (string, error) {
@@ -30,7 +35,7 @@ func getAuthHeaderValue() (string, error) {
 	return authHeaderValue, nil
 }
 
-func GetReleaseId(slug, tag string) (releaseId int, err error) {
+func GetRelease(slug, tag string) (release GitHubRelease, err error) {
 	url := fmt.Sprintf("%srepos/%s/releases/tags/%s", githubApiUrl, slug, tag)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -47,12 +52,10 @@ func GetReleaseId(slug, tag string) (releaseId int, err error) {
 	}
 
 	if resp.StatusCode == 200 {
-		var release releaseResponse
 		err = json.NewDecoder(resp.Body).Decode(&release)
 		if err != nil {
 			return
 		}
-		releaseId = release.Id
 		return
 	}
 

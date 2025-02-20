@@ -21,13 +21,18 @@ var githubCmd = &cobra.Command{
 	This includes checking if the current environment is a GitHub Action, getting the temporary directory for the runner, and setting output variables.
 	It also handles getting the release ID for a given repository and tag.`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		releaseId, err := github.GetReleaseId(slug, tag)
+		release, err := github.GetRelease(slug, tag)
 		if err != nil {
 			logger.Error("Failed to get release ID")
 			return
 		}
 
-		logger.Info("Release ID for %s:%s is %d", slug, tag, releaseId)
+		logger.Info("Release ID: %d", release.Id)
+		logger.Info("Tag Name: %s", release.TagName)
+		logger.Info("Name: %s", release.Name)
+		logger.Info("Draft: %t", release.Draft)
+		logger.Info("Prerelease: %t", release.Prerelease)
+		logger.Info("%s", release.Body)
 		return
 	},
 }
