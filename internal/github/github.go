@@ -10,23 +10,36 @@ import (
 )
 
 var githubApiUrl = "https://api.github.com/"
+var authHeaderValue string
 
 type releaseResponse struct {
 	Id int `json:"id"`
 }
 
-func GetReleaseId(slug, tag string) (releaseId int, err error) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		logger.Error("GITHUB_TOKEN not set")
-		err = fmt.Errorf("GITHUB_TOKEN not set")
-		return
+func getAuthHeaderValue() (string, error) {
+	if authHeaderValue == "" {
+		if os.Getenv("GITHUB_OAUTH") == "" {
+			logger.Error("GITHUB_OAUTH not set")
+			err := fmt.Errorf("GITHUB_OAUTH not set")
+			return "", err
+		}
+
+		authHeaderValue = fmt.Sprintf("token %s", os.Getenv("GITHUB_OAUTH"))
 	}
 
+	return authHeaderValue, nil
+}
+
+func GetReleaseId(slug, tag string) (releaseId int, err error) {
 	url := fmt.Sprintf("%srepos/%s/releases/tags/%s", githubApiUrl, slug, tag)
 
 	req, err := http.NewRequest("GET", url, nil)
 
-	req.Header.Set("Authorization", fmt.Sprintf("token %s", os.Getenv("GITHUB_TOKEN")))
+	tokenValue, err := getAuthHeaderValue()
+	if err != nil {
+		return
+	}
+	req.Header.Add("Authorization", tokenValue)
 
 	resp, err := http.Get(url)
 	if err != nil {
