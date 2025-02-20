@@ -23,6 +23,8 @@ jobs:
       - name: Go cache paths
         id: go-cache-paths
         run: |
+          chmod -R 0755 $(go env GOCACHE)
+          chmod -R 0755 $(go env GOMODCACHE)
           echo "go-build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
           echo "go-mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
@@ -59,3 +61,10 @@ jobs:
           name: coverage
           path: ./.coverage
           include-hidden-files: true
+
+      - name: Check release id
+        id: check_release_id
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          go run main.go github --slug=${{ github.repository }} --tag="v1.0.0-beta.2"

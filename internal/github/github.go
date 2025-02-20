@@ -1,11 +1,50 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/McTalian/wow-build-tools/internal/logger"
 )
+
+var githubApiUrl = "https://api.github.com/"
+
+type releaseResponse struct {
+	Id string `json:"id"`
+}
+
+func GetReleaseId(slug, tag string) (releaseId string, err error) {
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		logger.Error("GITHUB_TOKEN not set")
+		err = fmt.Errorf("GITHUB_TOKEN not set")
+		return
+	}
+
+	url := fmt.Sprintf("%srepos/%s/releases/tags/%s", githubApiUrl, slug, tag)
+
+	req, err := http.NewRequest("GET", url, nil)
+
+	req.Header.Set("Authorization", fmt.Sprintf("token %s", os.Getenv("GITHUB_TOKEN")))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode == 200 {
+		var release releaseResponse
+		err = json.NewDecoder(resp.Body).Decode(&release)
+		if err != nil {
+			return
+		}
+		releaseId = release.Id
+		return
+	}
+
+	return
+}
 
 func IsGitHubAction() bool {
 	return os.Getenv("CI") == "true" && os.Getenv("GITHUB_ACTIONS") == "true"
