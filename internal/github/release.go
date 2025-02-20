@@ -30,6 +30,41 @@ func (r *GitHubRelease) getPayload() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(payload), nil
 }
 
+func (r *GitHubRelease) UpdateRelease(newPayload GitHubReleasePayload) error {
+	url := fmt.Sprintf("%srepos/%s/releases/%d", githubApiUrl, r.Slug, r.Id)
+
+	r.GitHubReleasePayload = newPayload
+	body, err := r.getPayload()
+	if err != nil {
+		return fmt.Errorf("failed to marshal release: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, body)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	addAcceptHeader(req)
+
+	err = addAuthHeader(req)
+	if err != nil {
+		return err
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return fmt.Errorf("failed to get request: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to update release: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func CreateRelease(slug string, payload GitHubReleasePayload) (release *GitHubRelease, err error) {
 	r := &GitHubRelease{
 		GitHubReleasePayload: payload,
@@ -69,40 +104,6 @@ func CreateRelease(slug string, payload GitHubReleasePayload) (release *GitHubRe
 	err = json.NewDecoder(resp.Body).Decode(release)
 
 	return release, nil
-}
-
-func (r *GitHubRelease) UpdateRelease() error {
-	url := fmt.Sprintf("%srepos/%s/releases/%d", githubApiUrl, r.Slug, r.Id)
-
-	body, err := r.getPayload()
-	if err != nil {
-		return fmt.Errorf("failed to marshal release: %w", err)
-	}
-
-	req, err := http.NewRequest("PATCH", url, body)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	addAcceptHeader(req)
-
-	err = addAuthHeader(req)
-	if err != nil {
-		return err
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return fmt.Errorf("failed to get request: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to update release: %d", resp.StatusCode)
-	}
-
-	return nil
 }
 
 func GetRelease(slug, tag string) (release *GitHubRelease, err error) {
