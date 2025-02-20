@@ -64,7 +64,5 @@ jobs:
 
       - name: Check release id
         id: check_release_id
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go run main.go github --slug=${{ github.repository }} --tag="v1.0.0-beta.2"
