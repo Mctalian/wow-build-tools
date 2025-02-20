@@ -27,7 +27,7 @@ var githubCmd = &cobra.Command{
 			return
 		}
 
-		logger.Info("Release ID for %s:%s is %s", slug, tag, releaseId)
+		logger.Info("Release ID for %s:%s is %d", slug, tag, releaseId)
 		return
 	},
 }

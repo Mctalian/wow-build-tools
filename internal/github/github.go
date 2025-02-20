@@ -12,10 +12,10 @@ import (
 var githubApiUrl = "https://api.github.com/"
 
 type releaseResponse struct {
-	Id string `json:"id"`
+	Id int `json:"id"`
 }
 
-func GetReleaseId(slug, tag string) (releaseId string, err error) {
+func GetReleaseId(slug, tag string) (releaseId int, err error) {
 	if os.Getenv("GITHUB_TOKEN") == "" {
 		logger.Error("GITHUB_TOKEN not set")
 		err = fmt.Errorf("GITHUB_TOKEN not set")
