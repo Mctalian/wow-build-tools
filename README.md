@@ -4,6 +4,54 @@
 
 This repository aims to be a collection of tools to help with the development of World of Warcraft addons. The main focus is on speed and ease of use, with the goal of making the development process as smooth as possible.
 
+## Installation
+
+Once this project is out of beta, the installation process should be a one-time thing as the tool is written to self update on non-pre-release versions. For now, you'll need to manually download the latest version of the tool when new versions are released.
+
+### Local
+
+Head over to the [releases page](https://github.com/Mctalian/wow-build-tools/releases) and download the latest release for your operating system and architecture.
+
+- **Windows?** it's likely going to be the `wow-build-tools_windows_amd64.zip` file.
+- **Linux or WSL?** you'll likely want the `wow-build-tools_linux_amd64.zip` file.
+- **macOS?** you'll want to double-check if you have an Intel (`darwin_amd64.zip`) or Apple Silicon (`darwin_arm64.zip`) processor, and download the appropriate file.
+
+Extract the contents of the zip file to a directory of your choosing, and add that directory to your PATH if you'd like to use the tool from anywhere on your system.
+
+## GitHub Actions
+
+If you're looking to use `wow-build-tools` in a GitHub Action, you can use the following example workflow:
+
+```yaml
+name: Package and release
+
+on:
+  release:
+    types:
+      - published
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }} # CurseForge API Key, required for uploading to CurseForge
+      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }} # WoWInterface API Token, required for uploading to WoWInterface
+      WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }} # Wago.io API Token, required for uploading to Wago.io
+
+    steps:
+      - name: Clone project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Package and release
+        uses: McTalian/wow-build-tools@v1.0.0-beta.2
+```
+
 ## Features
 
 I have many plans for this project, and I will communicate those plans at a later date.
