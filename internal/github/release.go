@@ -30,38 +30,45 @@ func (r *GitHubRelease) getPayload() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(payload), nil
 }
 
-func (r *GitHubRelease) CreateRelease() error {
+func CreateRelease(slug string, payload GitHubReleasePayload) (release *GitHubRelease, err error) {
+	r := &GitHubRelease{
+		GitHubReleasePayload: payload,
+		Slug:                 slug,
+	}
+
 	url := fmt.Sprintf("%srepos/%s/releases", githubApiUrl, r.Slug)
 
 	body, err := r.getPayload()
 	if err != nil {
-		return fmt.Errorf("failed to marshal release: %w", err)
+		return nil, fmt.Errorf("failed to marshal release: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	addAcceptHeader(req)
 
 	err = addAuthHeader(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
 	if err != nil {
-		return fmt.Errorf("failed to get request: %w", err)
+		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("failed to create release: %d", resp.StatusCode)
+		return nil, fmt.Errorf("failed to create release: %d", resp.StatusCode)
 	}
 
-	return nil
+	err = json.NewDecoder(resp.Body).Decode(release)
+
+	return release, nil
 }
 
 func (r *GitHubRelease) UpdateRelease() error {
