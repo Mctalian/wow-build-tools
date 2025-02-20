@@ -33,6 +33,7 @@ func (t *Toc) addGameVersionsFromToc() map[GameFlavor][]string {
 
 		flavor := getFlavorFromMajorVersion(majorVersion)
 		AddGameVersion(flavor, fmt.Sprintf("%d.%d.%d", majorVersion, minorVersion, patchVersion))
+		AddGameInterface(flavor, strconv.Itoa(interfaceVersion))
 	}
 
 	return gameVersions
