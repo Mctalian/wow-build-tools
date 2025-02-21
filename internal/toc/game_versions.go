@@ -168,6 +168,10 @@ func GetGameFlavorVersionsMap() map[GameFlavor][]string {
 	return gameVersions
 }
 
+func GetGameFlavorInterfacesMap() map[GameFlavor][]string {
+	return gameInterfaces
+}
+
 func GetGameVersions() []string {
 	var versions []string
 	for _, version := range gameVersions {

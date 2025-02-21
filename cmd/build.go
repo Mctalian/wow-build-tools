@@ -292,6 +292,7 @@ var buildCmd = &cobra.Command{
 			logger.Error("GetChangelog Error: %v", err)
 			return err
 		}
+		defer cl.Cleanup()
 
 		err = i.Execute()
 		if err != nil {
@@ -387,7 +388,7 @@ var buildCmd = &cobra.Command{
 			flags[tokens.NoLibFlag] = ""
 
 			if !f.SkipUpload {
-				uploadsToAttempt := 3
+				uploadsToAttempt := 4
 				var uploadWGroup sync.WaitGroup
 				uploadErrChan := make(chan error, uploadsToAttempt)
 				uploadWGroup.Add(uploadsToAttempt)
@@ -437,6 +438,27 @@ var buildCmd = &cobra.Command{
 					}
 					if err = upload.UploadToWago(wagoArgs); err != nil {
 						logger.Error("Wago Upload Error: %v", err)
+						uploadErrChan <- err
+						return
+					}
+				}()
+
+				go func() {
+					defer uploadWGroup.Done()
+					githubArgs := upload.UploadGitHubArgs{
+						ZipPaths:       []string{zipFilePath},
+						ProjectName:    projectName,
+						ProjectVersion: tokenMap[tokens.ProjectVersion],
+						Repo:           vR,
+						Changelog:      cl,
+						ReleaseType:    releaseType,
+					}
+					if isNoLib {
+						githubArgs.ZipPaths = append(githubArgs.ZipPaths, f.ReleaseDir+"/"+noLibFileName+".zip")
+					}
+
+					if err = upload.UploadToGitHub(githubArgs); err != nil {
+						logger.Error("GitHub Upload Error: %v", err)
 						uploadErrChan <- err
 						return
 					}

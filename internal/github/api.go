@@ -11,9 +11,17 @@ import (
 var githubApiUrl = "https://api.github.com/"
 var authHeaderValue string
 
+func IsTokenSet() bool {
+	if os.Getenv("GITHUB_OAUTH") == "" {
+		return false
+	}
+
+	return true
+}
+
 func getAuthHeaderValue() (string, error) {
 	if authHeaderValue == "" {
-		if os.Getenv("GITHUB_OAUTH") == "" {
+		if !IsTokenSet() {
 			logger.Error("GITHUB_OAUTH not set")
 			err := fmt.Errorf("GITHUB_OAUTH not set")
 			return "", err

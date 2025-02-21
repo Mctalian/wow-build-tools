@@ -21,6 +21,10 @@ type GitHubReleasePayload struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
+func (r *GitHubRelease) UploadAsset(fileName string, filePath string) error {
+	return UploadGitHubAsset(r.Slug, r.Id, fileName, filePath)
+}
+
 func (r *GitHubRelease) getPayload() (*bytes.Buffer, error) {
 	payload, err := json.Marshal(&r.GitHubReleasePayload)
 	if err != nil {
@@ -106,6 +110,8 @@ func CreateRelease(slug string, payload GitHubReleasePayload) (release *GitHubRe
 	return release, nil
 }
 
+var ErrReleaseNotFound = fmt.Errorf("release not found")
+
 func GetRelease(slug, tag string) (release *GitHubRelease, err error) {
 	url := fmt.Sprintf("%srepos/%s/releases/tags/%s", githubApiUrl, slug, tag)
 
@@ -120,6 +126,11 @@ func GetRelease(slug, tag string) (release *GitHubRelease, err error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
+		return
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		err = ErrReleaseNotFound
 		return
 	}
 
