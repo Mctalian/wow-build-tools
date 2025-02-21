@@ -31,10 +31,16 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Copy action path to workspace
+      shell: bash
+      run: |
+        mkdir -p ${{ github.workspace }}/.wbt
+        cp -r ${{ github.action_path }} ${{ github.workspace }}/.wbt/
+
     - name: Set Env
       shell: bash
       env:
-        tmp_action_path: ${{ github.action_path }}
+        tmp_action_path: ${{ github.workspace }}/.wbt
         tmp_action_ref: ${{ github.action_ref }}
       run: |
         echo "wbt_action_path=$tmp_action_path" >> $GITHUB_ENV
@@ -46,33 +52,6 @@ runs:
         go-version-file: ${{ env.wbt_action_path }}/go.mod
         cache-dependency-path: |
           ${{ env.wbt_action_path }}/go.sum
-
-    - name: Go cache paths
-      shell: bash
-      id: go-cache-paths
-      run: |
-        chmod -R 0755 $(go env GOCACHE)
-        chmod -R 0755 $(go env GOMODCACHE)
-        echo "go-build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
-        echo "go-mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
-
-    # Cache go build cache, used to speedup go test
-    - name: Go Build Cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.go-cache-paths.outputs.go-build }}
-        key: ${{ runner.os }}-wbt-go-build-${{ hashFiles('${{ env.wbt_action_path }}/go.sum') }}
-
-    # Cache go mod cache, used to speedup builds
-    - name: Go Mod Cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.go-cache-paths.outputs.go-mod }}
-        key: ${{ runner.os }}-wbt-go-mod-${{ hashFiles('${{ env.wbt_action_path }}/go.sum') }}
-
-    - name: Install Go dependencies
-      shell: bash
-      run: go mod download
 
     - name: Subversion check
       id: svn-check
