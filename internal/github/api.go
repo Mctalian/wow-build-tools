@@ -9,6 +9,7 @@ import (
 )
 
 var githubApiUrl = "https://api.github.com/"
+var githubUploadUrl = "https://uploads.github.com/"
 var authHeaderValue string
 
 func IsTokenSet() bool {

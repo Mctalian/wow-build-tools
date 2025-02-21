@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,7 +164,8 @@ func UploadGitHubAsset(slug string, releaseId int, filename string, filePath str
 		}
 	}
 
-	url := fmt.Sprintf("%srepos/%s/releases/%d/assets?name=%s", githubApiUrl, slug, releaseId, filename)
+	encodedFilename := url.QueryEscape(filename)
+	url := fmt.Sprintf("%srepos/%s/releases/%d/assets?name=%s", githubUploadUrl, slug, releaseId, encodedFilename)
 
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
@@ -175,8 +177,15 @@ func UploadGitHubAsset(slug string, releaseId int, filename string, filePath str
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
+	// Get file size and set Content-Length manually.
+	fi, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+	req.ContentLength = fi.Size()
+
 	fileExtension := strings.TrimPrefix(filepath.Ext(filePath), ".")
-	fileContentType := fmt.Sprintf("application/%s", fileExtension)
+	fileContentType := "application/" + fileExtension
 
 	addAcceptHeader(req)
 	req.Header.Add("Content-Type", fileContentType)
@@ -197,6 +206,13 @@ func UploadGitHubAsset(slug string, releaseId int, filename string, filePath str
 		logger.Info("Successfully uploaded %s to release %d", filename, releaseId)
 		return nil
 	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	logger.Verbose("%s", string(body))
 
 	return fmt.Errorf("failed to upload %s to release %d: %s", filename, releaseId, resp.Status)
 }
