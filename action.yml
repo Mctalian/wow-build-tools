@@ -48,6 +48,7 @@ runs:
           ${{ env.wbt_action_path }}/go.sum
 
     - name: Go cache paths
+      shell: bash
       id: go-cache-paths
       run: |
         chmod -R 0755 $(go env GOCACHE)
@@ -70,6 +71,7 @@ runs:
         key: ${{ runner.os }}-wbt-go-mod-${{ hashFiles('${{ env.wbt_action_path }}/go.sum') }}
 
     - name: Install Go dependencies
+      shell: bash
       run: go mod download
 
     - name: Subversion check
