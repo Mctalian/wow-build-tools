@@ -29,7 +29,7 @@ func shouldSkip(repo repo.VcsRepo, logGroup *logger.LogGroup) bool {
 		return true
 	}
 
-	if github.IsTokenSet() {
+	if !github.IsTokenSet() {
 		logGroup.Verbose("GITHUB_OAUTH not set, skipping")
 		return true
 	}
