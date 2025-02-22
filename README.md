@@ -49,7 +49,10 @@ jobs:
           fetch-depth: 0
 
       - name: Package and release
-        uses: McTalian/wow-build-tools@v1.0.0-beta.2
+        env:
+          # GitHub Token, required for creating releases
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+        uses: McTalian/wow-build-tools@v1-beta
 ```
 
 ## Features
