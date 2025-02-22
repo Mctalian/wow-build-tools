@@ -9,6 +9,38 @@ env:
   CMD: wow-build-tools
 
 jobs:
+  move-major-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create or Update Major Version Tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fullVersion = process.env.GITHUB_REF_NAME;
+            const majorVersion = fullVersion.split('.')[0];
+            const tagName = fullVersion.includes('-') ? `${majorVersion}-${fullVersion.split('-')[1].split('.')[0]}` : majorVersion;
+
+            await github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${tagName}`,
+              sha: context.sha
+            }).catch(async (error) => {
+              if (error.status === 422) {
+                await github.git.updateRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `tags/${tagName}`,
+                  sha: context.sha,
+                  force: true
+                });
+              } else {
+                throw error;
+              }
+            });
+
   setup-go:
     # Do it once, leverage cache for subsequent jobs.
     runs-on: ubuntu-latest
