@@ -44,6 +44,9 @@ jobs:
   setup-go:
     # Do it once, leverage cache for subsequent jobs.
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -89,6 +92,7 @@ jobs:
         goarch: [amd64, arm64]
     permissions:
       contents: write
+      actions: read
     env:
       # Use the Git tag as the version (for example, "v1.2.3" or "v1.2.3-alpha.1")
       VERSION: ${{ github.ref_name }}
@@ -158,6 +162,7 @@ jobs:
     needs: build
     permissions:
       contents: write
+      actions: read
     outputs:
       release-type: ${{ steps.release-type.outputs.release-type }}
     steps:
@@ -204,6 +209,9 @@ jobs:
     strategy:
       matrix:
         distro: [curse, wago, wowi]
+    permissions:
+      contents: read
+      actions: read
     env:
       CURSE_ID: 1198075
       WAGO_ID: QKywW7N7
