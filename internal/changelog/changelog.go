@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/McTalian/wow-build-tools/internal/cachedir"
 	"github.com/McTalian/wow-build-tools/internal/github"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
@@ -166,19 +165,13 @@ func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, title string, pkgDir 
 			return nil, fmt.Errorf("Could not get the GitHub slug, can't get the changelog from the release")
 		}
 
-		cache, err := cachedir.Get()
-		if err != nil {
-			return nil, fmt.Errorf("Could not get the cache directory: %w", err)
-		}
-
 		release, err := github.GetRelease(slug, tag)
 		if err != nil {
 			return nil, fmt.Errorf("Could not get the release: %w", err)
 		}
 
 		// Write the release body to the cache directory
-		normalizedSlug := strings.ReplaceAll(slug, "/", "_")
-		releaseBodyPath := filepath.Join(cache, fmt.Sprintf("%s_%s.md", normalizedSlug, tag))
+		releaseBodyPath := filepath.Join(pkgDir, "CHANGELOG.md")
 		f, err := os.OpenFile(releaseBodyPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return nil, fmt.Errorf("Could not create the temporary github changelog file: %w", err)
