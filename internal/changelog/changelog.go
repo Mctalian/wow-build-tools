@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/McTalian/wow-build-tools/internal/github"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/repo"
@@ -27,6 +28,27 @@ type Changelog struct {
 	PreExistingFilePath string
 	MarkupType          MarkupType
 	generateChangelog   bool
+	requiresCleanup     bool
+}
+
+func (c *Changelog) Cleanup() {
+	if !c.requiresCleanup {
+		return
+	}
+
+	if c.PreExistingFilePath == "" {
+		return
+	}
+
+	if _, err := os.Stat(c.PreExistingFilePath); err == nil {
+		if err := os.Remove(c.PreExistingFilePath); err != nil {
+			logger.Error("Could not remove the temporary changelog file: %v", err)
+		}
+	} else if os.IsNotExist(err) {
+		return
+	}
+
+	return
 }
 
 var ErrManualChangelogNotFound = fmt.Errorf("Manual changelog file not found")
@@ -127,6 +149,58 @@ func (c *Changelog) GetChangelog() error {
 
 func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, title string, pkgDir string, topDir string) (*Changelog, error) {
 	var changelog *Changelog
+
+	if pkgMeta.ChangelogFromGitHub {
+		if !repo.IsGitHubHosted() {
+			return nil, fmt.Errorf("ChangelogFromGitHub is true but the repository is not hosted on GitHub")
+		}
+
+		tag := repo.GetCurrentTag()
+		if tag == "" {
+			return nil, fmt.Errorf("Could not get the current tag, can't get the changelog from the release")
+		}
+
+		slug := repo.GetGitHubSlug()
+		if slug == "" {
+			return nil, fmt.Errorf("Could not get the GitHub slug, can't get the changelog from the release")
+		}
+
+		release, err := github.GetRelease(slug, tag)
+		if err != nil {
+			return nil, fmt.Errorf("Could not get the release: %w", err)
+		}
+
+		// Write the release body to the cache directory
+		releaseBodyPath := filepath.Join(pkgDir, "CHANGELOG.md")
+		f, err := os.OpenFile(releaseBodyPath, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("Could not create the temporary github changelog file: %w", err)
+		}
+		defer f.Close()
+
+		_, err = f.WriteString(release.Body)
+		if err != nil {
+			return nil, fmt.Errorf("Could not write the release body to the temporary github changelog file: %w", err)
+		}
+
+		if err = f.Sync(); err != nil {
+			return nil, fmt.Errorf("Could not sync the temporary github changelog file: %w", err)
+		}
+
+		changelog = &Changelog{
+			repo:                repo,
+			title:               title,
+			pkgDir:              pkgDir,
+			topDir:              topDir,
+			PreExistingFilePath: releaseBodyPath,
+			MarkupType:          MarkdownMT,
+			generateChangelog:   false,
+			requiresCleanup:     true,
+		}
+
+		return changelog, nil
+	}
+
 	if pkgMeta.ManualChangelog.Filename != "" {
 		changelog = &Changelog{
 			topDir:              topDir,
@@ -136,6 +210,7 @@ func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, title string, pkgDir 
 			PreExistingFilePath: pkgMeta.ManualChangelog.Filename,
 			MarkupType:          MarkupType(pkgMeta.ManualChangelog.MarkupType),
 			generateChangelog:   false,
+			requiresCleanup:     false,
 		}
 
 		if err := changelog.verifyManualChangelog(); err == nil {
@@ -155,6 +230,7 @@ func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, title string, pkgDir 
 		MarkupType:          MarkdownMT,
 		PreExistingFilePath: filepath.Join(pkgDir, "CHANGELOG.md"),
 		generateChangelog:   true,
+		requiresCleanup:     false,
 	}
 
 	return changelog, nil

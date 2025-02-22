@@ -31,10 +31,16 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Copy action path to workspace
+      shell: bash
+      run: |
+        mkdir -p ${{ github.workspace }}/.wbt
+        cp -r ${{ github.action_path }}/. ${{ github.workspace }}/.wbt/
+
     - name: Set Env
       shell: bash
       env:
-        tmp_action_path: ${{ github.action_path }}
+        tmp_action_path: ${{ github.workspace }}/.wbt
         tmp_action_ref: ${{ github.action_ref }}
       run: |
         echo "wbt_action_path=$tmp_action_path" >> $GITHUB_ENV

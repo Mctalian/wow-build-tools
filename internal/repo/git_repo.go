@@ -35,6 +35,14 @@ type GitRepo struct {
 	previousVersionHash string
 }
 
+func (gR *GitRepo) IsGitHubHosted() bool {
+	return gR.isGitHubUrl
+}
+
+func (gR *GitRepo) GetGitHubSlug() string {
+	return gR.gitHubSlug
+}
+
 func (gR *GitRepo) GetCurrentTag() string {
 	return gR.CurrentTag
 }

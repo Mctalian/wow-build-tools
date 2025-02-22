@@ -26,7 +26,6 @@ type PkgMeta struct {
 	Externals            map[string]external.ExternalEntry `yaml:"externals"`
 	MoveFolders          map[string]string                 `yaml:"move-folders"`
 	Ignore               []string                          `yaml:"ignore"`
-	EnableNoLibCreation  bool                              `yaml:"enable-nolib-creation"`
 	RequiredDependencies []string                          `yaml:"required-dependencies"`
 	EmbeddedLibraries    []string                          `yaml:"embedded-libraries"`
 	OptionalDependencies []string                          `yaml:"optional-dependencies"`
@@ -34,6 +33,8 @@ type PkgMeta struct {
 	ManualChangelog      PkgMetaManualChangelog            `yaml:"manual-changelog"`
 	ChangelogTitle       string                            `yaml:"changelog-title"`
 	License              string                            `yaml:"license-output"`
+	ChangelogFromGitHub  bool                              `yaml:"github-release-as-changelog"`
+	EnableNoLibCreation  bool                              `yaml:"enable-nolib-creation"`
 	EnableTocCreation    bool                              `yaml:"enable-toc-creation"`
 	WowiCreateChangelog  bool                              `yaml:"wowi-create-changelog"`
 	WowiConvertChangelog bool                              `yaml:"wowi-convert-changelog"`

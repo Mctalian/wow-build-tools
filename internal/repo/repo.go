@@ -12,6 +12,8 @@ import (
 
 type VcsRepo interface {
 	IsIgnored(path string, isDir bool) bool
+	IsGitHubHosted() bool
+	GetGitHubSlug() string
 	GetInjectionValues(stm *tokens.SimpleTokenMap) error
 	GetFileInjectionValues(filePath string) (*tokens.SimpleTokenMap, error)
 	GetRepoRoot() string
@@ -31,6 +33,14 @@ type BaseVcsRepo struct {
 
 func (bV *BaseVcsRepo) GetInjectionValues(stm *tokens.SimpleTokenMap) error {
 	return nil
+}
+
+func (bV *BaseVcsRepo) IsGitHubHosted() bool {
+	return false
+}
+
+func (bV *BaseVcsRepo) GetGitHubSlug() string {
+	return ""
 }
 
 func (bV *BaseVcsRepo) IsIgnored(path string, isDir bool) bool {

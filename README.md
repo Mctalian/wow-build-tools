@@ -110,7 +110,7 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] `-p curse-id` Specify the CurseForge project ID
   - [x] `-w wowi-id` Specify the WoWInterface project ID
   - [x] `-a wago-id` Specify the Wago.io project ID
-  - [ ] `-g game-version` Specify the game version for uploading
+  - [x] `-g game-version` Specify the game version for uploading
   - [x] `-m pkgmeta-file` Specify the pkgmeta file to use
   - [x] `-n "{template}"` Tokenized zip file and upload label names
 - [ ] Support multiple styles of toc files:
@@ -203,8 +203,8 @@ To start, I'd like `wow-build-tools` to be as close to a drop-in replacement for
   - [x] Git
   - [ ] SVN
   - [ ] Mercurial
-- [ ] Creating and Updating GitHub Releases
-  - [ ] Upload output assets to GitHub Releases
+- [x] Creating and Updating GitHub Releases
+  - [x] Upload output assets to GitHub Releases
 - [x] Upload to CurseForge
 - [ ] Upload to WoWInterface
 - [ ] Upload to Wago.io
@@ -218,6 +218,7 @@ In addition to feature parity with `BigWigsMods/packager`, I have a few ideas fo
 
 - [x] Autoupdating the tool itself
 - [ ] More token replacements
+- [ ] Use GitHub Release contents as a source for the changelog
 - [ ] Guided tour of the tool
 - [ ] Various warnings and checks to help catch issues with the addon before packaging
 - [ ] Monorepo support
