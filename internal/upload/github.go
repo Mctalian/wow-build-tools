@@ -174,7 +174,7 @@ func UploadToGitHub(args UploadGitHubArgs) error {
 		assetWg.Add(1)
 		go func(asset assetToUpload) {
 			defer assetWg.Done()
-			err := release.UploadAsset(asset.FileName, asset.FilePath)
+			err := release.UploadAsset(asset.FileName, asset.FilePath, logGroup)
 			if err != nil {
 				assetErrChan <- fmt.Errorf("could not upload asset %s: %w", asset.FileName, err)
 			}

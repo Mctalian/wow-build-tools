@@ -19,7 +19,7 @@ type GitHubReleaseAsset struct {
 	Url  string `json:"url"`
 }
 
-func (ghRA *GitHubReleaseAsset) downloadAsset() (io.ReadCloser, error) {
+func (ghRA *GitHubReleaseAsset) downloadAsset(logGroup *logger.LogGroup) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", ghRA.Url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -38,7 +38,7 @@ func (ghRA *GitHubReleaseAsset) downloadAsset() (io.ReadCloser, error) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		logger.Info("Successfully downloaded asset %s", ghRA.Name)
+		logGroup.Info("Successfully downloaded asset %s", ghRA.Name)
 		return resp.Body, nil
 	}
 
@@ -119,7 +119,7 @@ func getAsset(slug string, assetId int) (*GitHubReleaseAsset, error) {
 	return nil, fmt.Errorf("failed to get asset %d: %s", assetId, resp.Status)
 }
 
-func deleteAsset(slug string, assetId int) error {
+func deleteAsset(slug string, assetId int, logGroup *logger.LogGroup) error {
 	url := fmt.Sprintf("%srepos/%s/releases/assets/%d", githubApiUrl, slug, assetId)
 
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -142,24 +142,24 @@ func deleteAsset(slug string, assetId int) error {
 	}
 
 	if resp.StatusCode == http.StatusNoContent {
-		logger.Info("Successfully deleted asset %d", assetId)
+		logGroup.Info("Successfully deleted asset %d", assetId)
 		return nil
 	}
 
 	return fmt.Errorf("failed to delete asset %d: %s", assetId, resp.Status)
 }
 
-func UploadGitHubAsset(slug string, releaseId int, filename string, filePath string) error {
+func UploadGitHubAsset(slug string, releaseId int, filename string, filePath string, logGroup *logger.LogGroup) error {
 	assetId, err := getAssetId(slug, releaseId, filename)
 	if err != nil {
 		return err
 	}
 
 	if assetId != -1 {
-		logger.Verbose("Asset %s already exists in release %d", filename, releaseId)
-		err = deleteAsset(slug, assetId)
+		logGroup.Verbose("Asset %s already exists in release %d", filename, releaseId)
+		err = deleteAsset(slug, assetId, logGroup)
 		if err != nil {
-			logger.Error("Failed to delete asset %d: %v", assetId, err)
+			logGroup.Error("Failed to delete asset %d: %v", assetId, err)
 			return err
 		}
 	}
@@ -203,7 +203,7 @@ func UploadGitHubAsset(slug string, releaseId int, filename string, filePath str
 	}
 
 	if resp.StatusCode == http.StatusCreated {
-		logger.Info("Successfully uploaded %s to release %d", filename, releaseId)
+		logGroup.Info("Successfully uploaded %s to release %d", filename, releaseId)
 		return nil
 	}
 
@@ -212,7 +212,7 @@ func UploadGitHubAsset(slug string, releaseId int, filename string, filePath str
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	logger.Verbose("%s", string(body))
+	logGroup.Verbose("%s", string(body))
 
 	return fmt.Errorf("failed to upload %s to release %d: %s", filename, releaseId, resp.Status)
 }

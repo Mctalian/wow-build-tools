@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
 type GitHubRelease struct {
@@ -21,8 +23,8 @@ type GitHubReleasePayload struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
-func (r *GitHubRelease) UploadAsset(fileName string, filePath string) error {
-	return UploadGitHubAsset(r.Slug, r.Id, fileName, filePath)
+func (r *GitHubRelease) UploadAsset(fileName string, filePath string, logGroup *logger.LogGroup) error {
+	return UploadGitHubAsset(r.Slug, r.Id, fileName, filePath, logGroup)
 }
 
 func (r *GitHubRelease) getPayload() (*bytes.Buffer, error) {
