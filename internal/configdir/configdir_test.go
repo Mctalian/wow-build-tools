@@ -1,4 +1,4 @@
-package cachedir
+package configdir
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	cacheDir = "" // Reset cacheDir for testing
+	externalsCacheDir = "" // Reset cacheDir for testing
 	var expectedDir string
 	if github.IsGitHubAction() {
 		expectedDir = filepath.Join(os.Getenv("RUNNER_TEMP"), externalsPath)
@@ -17,7 +17,7 @@ func TestGet(t *testing.T) {
 		expectedDir = filepath.Join(os.Getenv("HOME"), externalsPath)
 	}
 
-	dir, err := Get()
+	dir, err := GetExternalsCache()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -28,7 +28,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	cacheDir = "" // Reset cacheDir for testing
+	externalsCacheDir = "" // Reset cacheDir for testing
 	var expectedDir string
 	if github.IsGitHubAction() {
 		expectedDir = filepath.Join(os.Getenv("RUNNER_TEMP"), externalsPath)
@@ -36,7 +36,7 @@ func TestCreate(t *testing.T) {
 		expectedDir = filepath.Join(os.Getenv("HOME"), externalsPath)
 	}
 
-	dir, err := Create()
+	dir, err := CreateExternalsCache()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -55,7 +55,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	cacheDir = "" // Reset cacheDir for testing
+	externalsCacheDir = "" // Reset cacheDir for testing
 	var expectedDir string
 	if github.IsGitHubAction() {
 		expectedDir = filepath.Join(os.Getenv("RUNNER_TEMP"), externalsPath)
@@ -68,7 +68,7 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("failed to create directory for testing: %v", err)
 	}
 
-	if err := Delete(); err != nil {
+	if err := DeleteExternalsCache(); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
