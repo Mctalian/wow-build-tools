@@ -18,7 +18,7 @@ func checkVersion() (semver.Version, error) {
 	trimmedVersion := strings.TrimPrefix(version, "v")
 	v, err := semver.Parse(trimmedVersion)
 	if err != nil {
-		logger.Info("Running in local, alpha, or beta mode (%s). Skipping self-update.", trimmedVersion)
+		logger.Debug("Running in local, alpha, or beta mode (%s). Skipping self-update.", trimmedVersion)
 		return semver.Version{}, err
 	}
 	return v, nil
@@ -63,6 +63,8 @@ func ConfirmAndSelfUpdate() {
 	}
 
 	logger.Success("Successfully updated to version %s", latest.Version)
+	logger.Info("Re-run the command to use the new version")
+	os.Exit(0)
 }
 
 func DoSelfUpdate() {
