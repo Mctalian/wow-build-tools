@@ -26,8 +26,8 @@ jobs:
       - name: Go cache paths
         id: go-cache-paths
         run: |
-          chmod -R 0755 $(go env GOCACHE)
-          chmod -R 0755 $(go env GOMODCACHE)
+          [ -d $(go env GOCACHE) ] && chmod -R 0755 $(go env GOCACHE)
+          [ -d $(go env GOMODCACHE) ] && chmod -R 0755 $(go env GOMODCACHE)
           echo "go-build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
           echo "go-mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
