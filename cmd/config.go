@@ -26,7 +26,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/spf13/cobra"
@@ -85,25 +87,110 @@ func createConfigFileIfNotExist(localPath string) error {
 	return nil
 }
 
-func setWoWPath(reader *bufio.Reader) error {
-	var defaultPath string
-	// Check if Windows or Unix
-	if viper.Get("wowPath.base") != nil {
-		defaultPath = viper.GetString("wowPath.base")
-	} else if os.PathSeparator == '\\' {
-		defaultPath = "C:\\Program Files (x86)\\World of Warcraft"
+type Flavor string
+
+const (
+	retail        Flavor = "retail"
+	classic       Flavor = "classic"
+	classicEra    Flavor = "classicEra"
+	ptr           Flavor = "ptr"
+	xptr          Flavor = "xptr"
+	classicPtr    Flavor = "classicPtr"
+	classicEraPtr Flavor = "classicEraPtr"
+)
+
+var knownFlavors = []Flavor{retail, classic, classicEra, ptr, xptr, classicPtr, classicEraPtr}
+
+func (f Flavor) ToDir() string {
+	switch f {
+	case retail:
+		return "_retail_"
+	case classic:
+		return "_classic_"
+	case classicEra:
+		return "_classic_era_"
+	case ptr:
+		return "_ptr_"
+	case xptr:
+		return "_xptr_"
+	case classicPtr:
+		return "_classic_ptr_"
+	case classicEraPtr:
+		return "_classic_era_ptr_"
+	default:
+		return ""
+	}
+}
+
+func capitalize(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+func setFlavorPath(reader *bufio.Reader, flavor Flavor, value ...string) error {
+	var flavorPath string
+	if len(value) == 1 {
+		flavorPath = value[0]
 	} else {
-		defaultPath = "/mnt/c/Program Files (x86)/World of Warcraft"
+		basePath := viper.Get("wowPath.base")
+		var defaultPath string
+		if basePath != nil {
+			defaultPath = viper.GetString("wowPath.base") + string(os.PathSeparator)
+		} else if os.PathSeparator == '\\' {
+			defaultPath = "C:\\Program Files (x86)\\World of Warcraft\\"
+		} else {
+			defaultPath = "/mnt/c/Program Files (x86)/World of Warcraft/"
+		}
+
+		if viper.Get("wowPath."+string(flavor)) != nil {
+			defaultPath = viper.GetString("wowPath." + string(flavor))
+		} else {
+			defaultPath += flavor.ToDir()
+		}
+
+		logger.Prompt("Enter the path to your %s WoW installation [%s]: ", capitalize(string(flavor)), defaultPath)
+		flavorPath, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		flavorPath = flavorPath[:len(flavorPath)-1] // Remove newline character
+		if flavorPath == "" {
+			flavorPath = defaultPath
+		}
 	}
 
-	logger.Prompt("Enter the path to your WoW installation [%s]: ", defaultPath)
-	wowPath, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	wowPath = wowPath[:len(wowPath)-1] // Remove newline character
-	if wowPath == "" {
-		wowPath = defaultPath
+	viper.Set("wowPath."+string(flavor), flavorPath)
+	logger.Success("%s World of Warcraft installation path set to: %s", capitalize(string(flavor)), flavorPath)
+
+	return nil
+}
+
+func setWoWPath(reader *bufio.Reader, value ...string) error {
+	var wowPath string
+	if len(value) == 1 {
+		wowPath = value[0]
+	} else {
+		var defaultPath string
+		if viper.Get("wowPath.base") != nil {
+			defaultPath = viper.GetString("wowPath.base")
+			// Check if Windows or Unix
+		} else if os.PathSeparator == '\\' {
+			defaultPath = "C:\\Program Files (x86)\\World of Warcraft"
+		} else {
+			defaultPath = "/mnt/c/Program Files (x86)/World of Warcraft"
+		}
+
+		logger.Prompt("Enter the path to your WoW installation [%s]: ", defaultPath)
+		wowPath, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		wowPath = wowPath[:len(wowPath)-1] // Remove newline character
+		if wowPath == "" {
+			wowPath = defaultPath
+		}
 	}
 	viper.Set("wowPath.base", wowPath)
 	logger.Success("World of Warcraft installation path set to: %s", wowPath)
@@ -136,6 +223,9 @@ func setWoWPath(reader *bufio.Reader) error {
 		} else if entry.IsDir() && entry.Name() == "_xptr_" {
 			logger.Success("Found XPTR World of Warcraft installation at: %s", filepath.Join(wowPath, entry.Name()))
 			viper.Set("wowPath.xptr", filepath.Join(wowPath, entry.Name()))
+		} else if entry.IsDir() && entry.Name() == "_classic_ptr_" {
+			logger.Success("Found Classic PTR World of Warcraft installation at: %s", filepath.Join(wowPath, entry.Name()))
+			viper.Set("wowPath.classicPtr", filepath.Join(wowPath, entry.Name()))
 		}
 	}
 
@@ -156,24 +246,19 @@ func runConfigWizard() error {
 	logger.Info("Welcome to the wow-build-tools configuration wizard!")
 	logger.Info("Please follow the prompts to set up your configuration.")
 
+	var numberFlavorMap = map[int]Flavor{}
+
 	for {
 		wowPaths := viper.GetStringMapString("wowPath")
 		logger.Info("\nConfiguration Menu:")
-		logger.Info("1. Set or refresh Base World of Warcraft installation path")
+		logger.Info("1. Set or update Base World of Warcraft installation path")
 		nextNum := 2
 		if len(wowPaths) >= 1 {
-			logger.Info("%d. Set Retail path", nextNum)
-			nextNum++
-			logger.Info("%d. Set Classic path", nextNum)
-			nextNum++
-			logger.Info("%d. Set Classic Era path", nextNum)
-			nextNum++
-			logger.Info("%d. Set Classic Era PTR path", nextNum)
-			nextNum++
-			logger.Info("%d. Set PTR path", nextNum)
-			nextNum++
-			logger.Info("%d. Set XPTR path", nextNum)
-			nextNum++
+			for _, flavor := range knownFlavors {
+				logger.Info("%d. Update %s World of Warcraft installation path", nextNum, capitalize(string(flavor)))
+				numberFlavorMap[nextNum] = flavor
+				nextNum++
+			}
 		}
 		logger.Info("%d. Save and exit", nextNum)
 		nextNum++
@@ -204,20 +289,15 @@ func runConfigWizard() error {
 			return nil
 		default:
 			if len(wowPaths) >= 1 {
-				switch choice {
-				case "2":
-					logger.Warn("Not implemented yet.")
-				case "3":
-					logger.Warn("Not implemented yet.")
-				case "4":
-					logger.Warn("Not implemented yet.")
-				case "5":
-					logger.Warn("Not implemented yet.")
-				case "6":
-					logger.Warn("Not implemented yet.")
-				case "7":
-					logger.Warn("Not implemented yet.")
-				default:
+				choiceNum, err := strconv.Atoi(choice)
+				if err != nil {
+					logger.Warn("Invalid choice, please try again.")
+				} else if flavor, ok := numberFlavorMap[choiceNum]; ok {
+					err = setFlavorPath(reader, flavor)
+					if err != nil {
+						return err
+					}
+				} else {
 					logger.Warn("Invalid choice, please try again.")
 				}
 			} else {
@@ -229,13 +309,13 @@ func runConfigWizard() error {
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
-	Use:   "config",
+	Use:   "config [primaryConfigPath] [secondaryConfigPath]",
 	Short: "Configure wow-build-tools",
 	Long: `Configure the settings for wow-build-tools.
 	This includes setting up the path to the World of Warcraft installation(s)
 	for watch mode.
 	
-	Configuration can be local (current directory) or global (home directory).`,
+	If no positional arguments are provided, the configuration wizard will be launched.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		localPath, err := filepath.Abs(filepath.Join(".", ".wbt.yaml"))
 		if err != nil {
@@ -248,13 +328,39 @@ var configCmd = &cobra.Command{
 		}
 		configFile = viper.ConfigFileUsed()
 
-		logger.Warn("Config: %s", configFile)
-
 		if err = createConfigFileIfNotExist(localPath); err != nil {
 			if err == ErrConfigCreationAborted {
 				return nil
 			}
 			return err
+		}
+
+		validPrimaryArgs := []string{"wowPath"}
+		if args != nil && len(args) > 0 {
+			if slices.Contains(validPrimaryArgs, args[0]) {
+				if len(args) == 1 {
+					logger.Error("No subcommand provided for %s configuration", args[0])
+					return fmt.Errorf("no subcommand provided for %s configuration", args[0])
+				}
+				validSecondaryArgs := []string{"base"}
+				for _, flavor := range knownFlavors {
+					validSecondaryArgs = append(validSecondaryArgs, string(flavor))
+				}
+				if slices.Contains(validSecondaryArgs, args[1]) {
+					if args[1] == "base" {
+						return setWoWPath(bufio.NewReader(os.Stdin), args[2:]...)
+					} else {
+						flavor := Flavor(args[1])
+						return setFlavorPath(bufio.NewReader(os.Stdin), flavor, args[2:]...)
+					}
+				} else {
+					logger.Error("Invalid subcommand provided for %s configuration, %s. Must be one of %v", args[0], args[1], validSecondaryArgs)
+					return fmt.Errorf("invalid subcommand provided for %s configuration", args[0])
+				}
+			} else {
+				logger.Error("Invalid primary argument provided for configuration, %s. Must be one of %v", args[0], validPrimaryArgs)
+				return fmt.Errorf("invalid primary argument provided for configuration")
+			}
 		}
 
 		return runConfigWizard()
