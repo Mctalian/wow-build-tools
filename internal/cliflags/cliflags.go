@@ -1,8 +1,10 @@
 package cliflags
 
+var WatchMode bool
 var SkipCopy bool
 var SkipUpload bool
 var SkipExternals bool
+var SkipChangelog bool
 var ForceExternals bool
 var SkipLocalization bool
 var OnlyLocalization bool

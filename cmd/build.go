@@ -53,6 +53,11 @@ var buildCmd = &cobra.Command{
 	Long:  `This command packages the addon as specified via a pkgmeta file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
+		defer logger.Clear()
+
+		if f.WatchMode {
+			logger.SetLogLevel(logger.WARN)
+		}
 
 		err := toc.ParseGameVersionFlag()
 		if err != nil {
@@ -300,17 +305,23 @@ var buildCmd = &cobra.Command{
 		} else {
 			changelogTitle = projectName
 		}
-		cl, err := changelog.NewChangelog(vR, pkgMeta, changelogTitle, packageDir, topDir)
-		if err != nil {
-			logger.Error("Changelog Error: %v", err)
-			return err
+
+		var cl *changelog.Changelog
+		if f.SkipChangelog {
+			cl = &changelog.Changelog{}
+		} else {
+			cl, err = changelog.NewChangelog(vR, pkgMeta, changelogTitle, packageDir, topDir)
+			if err != nil {
+				logger.Error("Changelog Error: %v", err)
+				return err
+			}
+			err = cl.GetChangelog()
+			if err != nil {
+				logger.Error("GetChangelog Error: %v", err)
+				return err
+			}
+			defer cl.Cleanup()
 		}
-		err = cl.GetChangelog()
-		if err != nil {
-			logger.Error("GetChangelog Error: %v", err)
-			return err
-		}
-		defer cl.Cleanup()
 
 		err = i.Execute()
 		if err != nil {
@@ -332,14 +343,9 @@ var buildCmd = &cobra.Command{
 			return err
 		}
 
-		isNoLib := f.CreateNoLib || pkgMeta.EnableNoLibCreation
+		isNoLib := (f.CreateNoLib || pkgMeta.EnableNoLibCreation) && !f.WatchMode
 
 		if !f.SkipZip {
-			if err != nil {
-				logger.Error("Changelog Error: %v", err)
-				return err
-			}
-
 			zipsToCreate := 1
 			if isNoLib {
 				zipsToCreate++
@@ -405,7 +411,7 @@ var buildCmd = &cobra.Command{
 			}
 			flags[tokens.NoLibFlag] = ""
 
-			if !f.SkipUpload {
+			if !f.SkipUpload && !f.WatchMode {
 				uploadsToAttempt := 4
 				var uploadWGroup sync.WaitGroup
 				uploadErrChan := make(chan error, uploadsToAttempt)
@@ -500,7 +506,7 @@ var buildCmd = &cobra.Command{
 		logger.WarningsEncountered()
 
 		fmt.Println("")
-		logger.Info("✨ Successfully packaged %s in ⏱️  %s", projectName, time.Since(start))
+		logger.Success("✨ Successfully packaged %s in ⏱️  %s", projectName, time.Since(start))
 		return nil
 	},
 }
@@ -519,6 +525,7 @@ func init() {
 	buildCmd.Flags().StringVarP(&f.WowiId, "wowiId", "w", "", "Set the WoWInterface project ID for uploading. (Use 0 to unset the TOC value)")
 	buildCmd.Flags().StringVarP(&f.WagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
 	buildCmd.Flags().BoolVarP(&f.SkipCopy, "skipCopy", "c", false, "Skip copying the files to the output directory.")
+	buildCmd.Flags().BoolVar(&f.SkipChangelog, "skipChangelog", false, "Skip changelog generation.")
 	buildCmd.Flags().BoolVarP(&f.SkipExternals, "skipExternals", "e", false, "Skip fetching externals.")
 	buildCmd.Flags().BoolVarP(&f.ForceExternals, "forceExternals", "E", false, "Force fetching externals, bypassing the cache.")
 	buildCmd.Flags().BoolVarP(&f.SkipZip, "skipZip", "z", false, "Skip zipping the package (and uploading).")

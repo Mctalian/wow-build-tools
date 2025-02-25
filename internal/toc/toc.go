@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
 type Toc struct {
@@ -177,6 +179,69 @@ func parse(filePath, tocContents string) (*Toc, error) {
 	toc.addGameVersionsFromToc()
 
 	return toc, nil
+}
+
+func GetTocFileTree(path string) ([]string, error) {
+	tocFiles, err := FindTocFiles(path)
+	if err != nil {
+		return nil, fmt.Errorf("error finding TOC files: %v", err)
+	}
+
+	var coveredFilesSet = make(map[string]bool)
+	for _, tocFile := range tocFiles {
+		toc, err := NewToc(tocFile)
+		if err != nil {
+			return nil, fmt.Errorf("error creating TOC object: %v", err)
+		}
+		for _, file := range toc.Files {
+			coveredFilesSet[filepath.Join(path, file)] = true
+		}
+	}
+
+	var coveredFiles []string
+	for file := range coveredFilesSet {
+		coveredFiles = append(coveredFiles, file)
+	}
+
+	slices.Sort(coveredFiles)
+
+	return coveredFiles, nil
+}
+
+func WalkXmlFile(xmlFile string) ([]string, error) {
+	if _, err := os.Stat(xmlFile); os.IsNotExist(err) {
+		logger.Verbose("Could be an external lib file, skipping: %s", xmlFile)
+		return []string{}, nil
+	}
+
+	contents, err := os.ReadFile(xmlFile)
+	if err != nil {
+		return nil, fmt.Errorf("error reading XML file: %v", err)
+	}
+
+	lineEnding := "\n"
+	if strings.Contains(string(contents), "\r\n") {
+		lineEnding = "\r\n"
+	}
+
+	lines := strings.Split(string(contents), lineEnding)
+	var entries []string
+	for _, line := range lines {
+		if strings.Contains(line, "file=") {
+			includeFile := strings.Split(line, "file=\"")[1]
+			includeFile = strings.Split(includeFile, "\"")[0]
+			entries = append(entries, filepath.Join(filepath.Dir(xmlFile), includeFile))
+			if strings.Contains(includeFile, ".xml") {
+				recursiveEntries, err := WalkXmlFile(filepath.Join(filepath.Dir(xmlFile), includeFile))
+				if err != nil {
+					return nil, fmt.Errorf("error walking XML file: %v", err)
+				}
+				entries = append(entries, recursiveEntries...)
+			}
+		}
+	}
+
+	return entries, nil
 }
 
 func NewToc(path string) (*Toc, error) {

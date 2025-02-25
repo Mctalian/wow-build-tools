@@ -21,14 +21,20 @@ type LogGroup struct {
 	timeCreated time.Time
 	Header      string
 	Buffer      []BufferedLog
+	parent      *Logger
 }
 
 // NewLogGroup creates a new LogGroup with the specified header.
-func NewLogGroup(header string) *LogGroup {
+func NewLogGroup(header string, args ...*Logger) *LogGroup {
+	parent := DefaultLogger
+	if len(args) > 0 {
+		parent = args[0]
+	}
 	return &LogGroup{
 		timeCreated: time.Now(),
 		Header:      header,
 		Buffer:      make([]BufferedLog, 0),
+		parent:      parent,
 	}
 }
 
@@ -60,7 +66,7 @@ func (lg *LogGroup) add(level LogLevel, format string, args ...interface{}) {
 		Args:   args,
 	})
 	if level == WARN {
-		warningsEncountered = append(warningsEncountered, fmt.Sprintf(format, args...))
+		lg.parent.warningsEncountered = append(lg.parent.warningsEncountered, fmt.Sprintf(format, args...))
 	}
 }
 
@@ -92,10 +98,17 @@ func (lg *LogGroup) Flush(writeToTiming ...bool) {
 	if len(writeToTiming) > 0 {
 		withTiming = writeToTiming[0]
 	}
-
 	// Print the header.
 	// You might choose to colorize or style it as needed.
 	headerStr := color.GreenString(lg.Header)
+
+	if lg.parent.level == WARN {
+		sb.WriteString(headerStr)
+		sb.WriteString(color.MagentaString(fmt.Sprintf(" took %s", time.Since(lg.timeCreated))))
+		log.Print(sb.String())
+		return
+	}
+
 	sb.WriteString("\n")
 	sb.WriteString(headerStr)
 	sb.WriteString("\n")
@@ -103,7 +116,7 @@ func (lg *LogGroup) Flush(writeToTiming ...bool) {
 	// Iterate through the buffered entries.
 	for _, entry := range lg.Buffer {
 		// Check if the entry should be printed based on current log level.
-		if currentLevel <= entry.Level {
+		if lg.parent.level <= entry.Level {
 			// Format the message.
 			msg := fmt.Sprintf(entry.Format, entry.Args...)
 			// Apply level-specific color.
