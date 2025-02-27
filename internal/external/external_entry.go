@@ -59,6 +59,9 @@ func TypeColor(t VcsType) string {
 	}
 }
 
+var urlPathSeparator = "/"
+var protocolSeparator = "://"
+
 // UnmarshalYAML allows ExternalEntry to handle both string and object forms.
 func (e *ExternalEntry) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
@@ -96,15 +99,15 @@ func (e *ExternalEntry) UnmarshalYAML(value *yaml.Node) error {
 			switch e.EType {
 			case Git:
 				e.URL = strings.TrimSuffix(e.URL, "/mainline.git")
-				e.URL = strings.Split(e.URL, "://")[1]
+				e.URL = strings.Split(e.URL, protocolSeparator)[1]
 				e.URL = strings.Replace(e.URL, "git", "https://repos", 1)
 			case Svn:
 				e.URL = strings.Replace(e.URL, "/mainline", "", 1)
-				e.URL = strings.Split(e.URL, "://")[1]
+				e.URL = strings.Split(e.URL, protocolSeparator)[1]
 				e.URL = strings.Replace(e.URL, "svn", "https://repos", 1)
 			case Hg:
 				e.URL = strings.TrimSuffix(e.URL, "/mainline")
-				e.URL = strings.Split(e.URL, "://")[1]
+				e.URL = strings.Split(e.URL, protocolSeparator)[1]
 				e.URL = strings.Replace(e.URL, "hg", "https://repos", 1)
 			default:
 				return fmt.Errorf("unknown repo type: %s", e.EType.ToString())
@@ -139,8 +142,8 @@ func (e *ExternalEntry) handleCurseUrl() {
 			// Remove the known prefix
 			remainingPath := strings.TrimPrefix(e.URL, prefix)
 
-			// Split by "/" and take the first segment as the slug
-			parts := strings.SplitN(remainingPath, "/", 2)
+			// Split by urlPathSeparator and take the first segment as the slug
+			parts := strings.SplitN(remainingPath, urlPathSeparator, 2)
 			e.CurseSlug = parts[0]
 
 			// If there's no additional path after the slug, return early
@@ -149,7 +152,7 @@ func (e *ExternalEntry) handleCurseUrl() {
 			}
 
 			// Check for SVN-specific paths (trunk/tags)
-			svnPathParts := strings.SplitN(parts[1], "/", 2)
+			svnPathParts := strings.SplitN(parts[1], urlPathSeparator, 2)
 			svnRoot := svnPathParts[0] // "trunk" or "tags/<tag>"
 
 			if svnRoot == "trunk" {
@@ -185,15 +188,15 @@ func (e *ExternalEntry) determinePath() {
 			}
 		} else if strings.Contains(e.URL, "github.com") {
 			// Remove the known prefixes
-			UriNoProtocol := strings.SplitN(e.URL, "://", 2)[1]
-			segments := strings.SplitN(UriNoProtocol, "/", 4)
+			UriNoProtocol := strings.SplitN(e.URL, protocolSeparator, 2)[1]
+			segments := strings.SplitN(UriNoProtocol, urlPathSeparator, 4)
 			if len(segments) < 4 {
 				return
 			}
 			// owner := segments[1]
 			// repo := segments[2]
 			e.Path = segments[3]
-			e.URL = strings.TrimSuffix(e.URL, fmt.Sprintf("/%s", e.Path))
+			e.URL = strings.TrimSuffix(e.URL, fmt.Sprintf("%s%s", urlPathSeparator, e.Path))
 		}
 	}
 }
@@ -201,7 +204,7 @@ func (e *ExternalEntry) determinePath() {
 func (e *ExternalEntry) GetRepoCachePath() string {
 	cacheDir, _ := configdir.GetExternalsCache()
 
-	safeName := strings.ReplaceAll(e.URL+"_"+e.Tag, "/", "_")
+	safeName := strings.ReplaceAll(e.URL+"_"+e.Tag, urlPathSeparator, "_")
 	return filepath.Join(cacheDir, safeName)
 }
 

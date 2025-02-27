@@ -8,14 +8,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
 )
 
 type Zipper struct {
-	pkgDir   string
-	logGroup *logger.LogGroup
+	pkgDir          string
+	releaseDir      string
+	topDir          string
+	logGroup        *logger.LogGroup
+	unixLineEndings bool
 }
 
 func (z *Zipper) Complete() {
@@ -103,8 +105,8 @@ func (z *Zipper) ZipFiles(srcPath string, destPath string, noLibArgs ...[]string
 		// Check file size and warn if it seems too large
 		if info.Size() > 1000000 {
 			abbrevSize := float64(info.Size()) / 1000000.0
-			trimmedPath := strings.ReplaceAll(path, z.pkgDir, cliflags.TopDir)
-			trimmedDestPath := strings.TrimPrefix(destPath, cliflags.ReleaseDir+"/")
+			trimmedPath := strings.ReplaceAll(path, z.pkgDir, z.topDir)
+			trimmedDestPath := strings.TrimPrefix(destPath, z.releaseDir+string(os.PathSeparator))
 			z.logGroup.Warn("%s: %s is large (%f MB), consider adding it to ignores", trimmedDestPath, trimmedPath, abbrevSize)
 		}
 
@@ -121,7 +123,7 @@ func (z *Zipper) ZipFiles(srcPath string, destPath string, noLibArgs ...[]string
 					contentsStr := string(contents)
 					// Comment out the lib strip line
 					var lineEnding string
-					if cliflags.UnixLineEndings {
+					if z.unixLineEndings {
 						lineEnding = "\n"
 					} else {
 						lineEnding = "\r\n"
@@ -167,10 +169,13 @@ func (z *Zipper) ZipFiles(srcPath string, destPath string, noLibArgs ...[]string
 	})
 }
 
-func NewZipper(pkgDir string) *Zipper {
+func NewZipper(pkgDir string, releaseDir string, topDir string, unixLineEndings bool) *Zipper {
 	logGroup := logger.NewLogGroup("💼 Creating Zip File(s)")
 	return &Zipper{
-		pkgDir:   pkgDir,
-		logGroup: logGroup,
+		pkgDir:          pkgDir,
+		releaseDir:      releaseDir,
+		topDir:          topDir,
+		logGroup:        logGroup,
+		unixLineEndings: unixLineEndings,
 	}
 }

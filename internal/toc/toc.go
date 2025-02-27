@@ -88,7 +88,7 @@ func TocFileToGameFlavor(noExt string) (flavor GameFlavor, suffix string) {
 
 func FindTocFiles(path string) ([]string, error) {
 	tocFiles := []string{}
-	matches, err := filepath.Glob(path + "/*.toc")
+	matches, err := filepath.Glob(path + string(os.PathSeparator) + "*.toc")
 	if err != nil {
 		return tocFiles, fmt.Errorf("error finding TOC file in %s: %v", path, err)
 	}

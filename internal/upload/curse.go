@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/toc"
@@ -369,17 +368,12 @@ func (c *curseUpload) upload() (err error) {
 	return nil
 }
 
-func getCurseId(tocFiles []*toc.Toc) (curseId string, err error) {
-	if f.SkipUpload || f.OnlyLocalization {
-		err = ErrNoCurseUpload
-		return
-	}
-
-	if f.CurseId != "" {
-		if f.CurseId == "0" {
+func getCurseId(tocFiles []*toc.Toc, curseIdFlag string) (curseId string, err error) {
+	if curseIdFlag != "" {
+		if curseIdFlag == "0" {
 			curseId = ""
 		} else {
-			curseId = f.CurseId
+			curseId = curseIdFlag
 		}
 	} else {
 		curseId, err = locateCurseId(tocFiles)
@@ -396,22 +390,30 @@ func getCurseId(tocFiles []*toc.Toc) (curseId string, err error) {
 }
 
 type UploadCurseArgs struct {
-	TocFiles    []*toc.Toc
-	ZipPath     string
-	FileLabel   string
-	PkgMeta     *pkg.PkgMeta
-	Changelog   *changelog.Changelog
-	ReleaseType string
+	TocFiles         []*toc.Toc
+	CurseId          string
+	ZipPath          string
+	FileLabel        string
+	PkgMeta          *pkg.PkgMeta
+	Changelog        *changelog.Changelog
+	ReleaseType      string
+	SkipUpload       bool
+	OnlyLocalization bool
 }
 
 func UploadToCurse(args UploadCurseArgs) error {
 	logGroup := logger.NewLogGroup("🔥 Uploading to CurseForge")
 	defer logGroup.Flush(true)
 
+	if args.SkipUpload || args.OnlyLocalization {
+		logGroup.Verbose("Skipping CurseForge upload")
+		return nil
+	}
+
 	tocFiles := args.TocFiles
 	pkgMeta := args.PkgMeta
 
-	curseId, err := getCurseId(tocFiles)
+	curseId, err := getCurseId(tocFiles, args.CurseId)
 	if err != nil {
 		if err == ErrNoCurseId || err == ErrNoCurseUpload {
 			logGroup.Verbose("Skipping CurseForge upload")

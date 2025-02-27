@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 )
 
-func PreparePkgDir(projectName string) (string, error) {
-	f.PackageDir = filepath.Join(f.ReleaseDir, projectName)
-	packageDir := f.PackageDir
+func PreparePkgDir(projectName string, releaseDir string, keepPackageDir bool) (string, error) {
+	packageDir := filepath.Join(releaseDir, projectName)
 	var err error
-	if !f.KeepPackageDir {
+	if !keepPackageDir {
 		err = os.RemoveAll(packageDir)
 		if err != nil {
 			return "", fmt.Errorf("error removing release directory: %v", err)

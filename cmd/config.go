@@ -56,8 +56,9 @@ func createConfigFileIfNotExist(localPath string) error {
 		if err != nil {
 			return err
 		}
+		response = strings.TrimSpace(response)
 
-		if response == "y\n" || response == "Y\n" {
+		if response == "y" || response == "Y" {
 			if globalConfig {
 				logger.Info("Creating global configuration file...")
 				err := viper.SafeWriteConfig()
@@ -155,7 +156,7 @@ func setFlavorPath(reader *bufio.Reader, flavor Flavor, value ...string) error {
 		if err != nil {
 			return err
 		}
-		flavorPath = flavorPath[:len(flavorPath)-1] // Remove newline character
+		flavorPath = strings.TrimSpace(flavorPath)
 		if flavorPath == "" {
 			flavorPath = defaultPath
 		}
@@ -169,6 +170,7 @@ func setFlavorPath(reader *bufio.Reader, flavor Flavor, value ...string) error {
 
 func setWoWPath(reader *bufio.Reader, value ...string) error {
 	var wowPath string
+	var err error
 	if len(value) == 1 {
 		wowPath = value[0]
 	} else {
@@ -183,11 +185,11 @@ func setWoWPath(reader *bufio.Reader, value ...string) error {
 		}
 
 		logger.Prompt("Enter the path to your WoW installation [%s]: ", defaultPath)
-		wowPath, err := reader.ReadString('\n')
+		wowPath, err = reader.ReadString('\n')
 		if err != nil {
 			return err
 		}
-		wowPath = wowPath[:len(wowPath)-1] // Remove newline character
+		wowPath = strings.TrimSpace(wowPath)
 		if wowPath == "" {
 			wowPath = defaultPath
 		}
@@ -269,7 +271,7 @@ func runConfigWizard() error {
 		if err != nil {
 			return err
 		}
-		choice = choice[:len(choice)-1] // Remove newline character
+		choice = strings.TrimSpace(choice)
 
 		switch choice {
 		case "1":

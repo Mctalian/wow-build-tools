@@ -80,7 +80,7 @@ func (p *PkgMeta) String() string {
 	return str
 }
 
-func (p *PkgMeta) FetchExternals(packageDir string) error {
+func (p *PkgMeta) FetchExternals(packageDir string, forceExternals bool) error {
 	externalLogger := logger.GetSubLog("EXT")
 	externalLogger.Debug("Fetching external dependencies")
 
@@ -103,7 +103,7 @@ func (p *PkgMeta) FetchExternals(packageDir string) error {
 		case external.Git:
 			checkoutWg.Add(1)
 			currentEntry.LogGroup.Info("📥 Processing external for %s", currentPath)
-			ext, err = external.NewGitExternal(&currentEntry)
+			ext, err = external.NewGitExternal(&currentEntry, forceExternals)
 			if err != nil {
 				currentEntry.LogGroup.Error("Failed to create git external: %v", err)
 				currentEntry.LogGroup.Flush()
@@ -113,7 +113,7 @@ func (p *PkgMeta) FetchExternals(packageDir string) error {
 		case external.Svn:
 			checkoutWg.Add(1)
 			currentEntry.LogGroup.Info("📥 Processing external for %s", currentPath)
-			ext, err = external.NewSvnExternal(&currentEntry)
+			ext, err = external.NewSvnExternal(&currentEntry, forceExternals)
 			if err != nil {
 				currentEntry.LogGroup.Error("Failed to create svn external: %v", err)
 				currentEntry.LogGroup.Flush()
@@ -260,7 +260,7 @@ func Parse(args *ParseArgs) (*PkgMeta, error) {
 		ymlFile := filepath.Join(pkgDir, "pkgmeta.yml")
 		yamlFile := filepath.Join(pkgDir, "pkgmeta.yaml")
 		pkgFile := filepath.Join(pkgDir, ".pkgmeta")
-		subPath := strings.Split(pkgDir, "/")[len(strings.Split(pkgDir, "/"))-1]
+		subPath := strings.Split(pkgDir, string(os.PathSeparator))[len(strings.Split(pkgDir, string(os.PathSeparator)))-1]
 		if args.LogGroup != nil {
 			args.LogGroup.Verbose("Looking for pkgmeta files in %s", subPath)
 		} else {

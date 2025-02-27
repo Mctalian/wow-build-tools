@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 )
@@ -100,17 +99,12 @@ func locateWagoId(tocFiles []*toc.Toc) (wagoId string, err error) {
 	return
 }
 
-func getWagoId(tocFiles []*toc.Toc) (wagoId string, err error) {
-	if f.SkipUpload {
-		err = ErrNoWagoUpload
-		return
-	}
-
-	if f.WagoId != "" {
-		if f.WagoId == "0" {
+func getWagoId(tocFiles []*toc.Toc, wagoIdFlag string) (wagoId string, err error) {
+	if wagoIdFlag != "" {
+		if wagoIdFlag == "0" {
 			wagoId = ""
 		} else {
-			wagoId = f.WagoId
+			wagoId = wagoIdFlag
 		}
 	} else {
 		wagoId, err = locateWagoId(tocFiles)
@@ -332,15 +326,22 @@ type UploadWagoArgs struct {
 	FileLabel   string
 	Changelog   *changelog.Changelog
 	ReleaseType string
+	SkipUpload  bool
+	WagoId      string
 }
 
 func UploadToWago(args UploadWagoArgs) error {
 	logGroup := logger.NewLogGroup("🪢  Uploading to Wago")
 	defer logGroup.Flush(true)
 
+	if args.SkipUpload {
+		logGroup.Verbose("Skipping Wago upload")
+		return nil
+	}
+
 	tocFiles := args.TocFiles
 
-	wagoId, err := getWagoId(tocFiles)
+	wagoId, err := getWagoId(tocFiles, args.WagoId)
 	if err != nil {
 		if err == ErrNoWagoId || err == ErrNoWagoUpload {
 			logGroup.Verbose("Skipping Wago upload")

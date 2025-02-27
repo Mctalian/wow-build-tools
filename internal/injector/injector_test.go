@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/repo"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
@@ -49,7 +48,7 @@ func TestNewInjector(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vcsRepo := &repo.MockVcsRepo{}
-			injector, err := NewInjector(tt.simpleTokens, vcsRepo, "/some/path", tt.buildTypeTokens)
+			injector, err := NewInjector(tt.simpleTokens, vcsRepo, "/some/path", tt.buildTypeTokens, false)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -95,7 +94,7 @@ func TestInjector_FindAndReplaceInFile(t *testing.T) {
 			vcsRepo := &repo.MockVcsRepo{}
 			injector, err := NewInjector(tokens.SimpleTokenMap{
 				tokens.BuildDate: "value1",
-			}, vcsRepo, ".", tokens.BuildTypeTokenMap{})
+			}, vcsRepo, ".", tokens.BuildTypeTokenMap{}, false)
 			assert.NoError(t, err)
 
 			injector.logGroup = logger.NewLogGroup("💉 Injecting tokens into package directory")
@@ -251,12 +250,6 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.unixLineEndings {
-				cliflags.UnixLineEndings = true
-			} else {
-				cliflags.UnixLineEndings = false
-			}
-
 			f, err := os.CreateTemp(".", "file*"+tt.extension)
 			name := f.Name()
 			filePath := filepath.Join(".", name)
@@ -268,7 +261,7 @@ func TestInjector_FindAndReplaceInFile_BuildTypeTokens(t *testing.T) {
 			vcsRepo := &repo.MockVcsRepo{}
 			injector, err := NewInjector(tokens.SimpleTokenMap{
 				tokens.BuildDate: "value1",
-			}, vcsRepo, ".", tt.bTTM)
+			}, vcsRepo, ".", tt.bTTM, tt.unixLineEndings)
 			require.NoError(t, err)
 
 			injector.logGroup = logger.NewLogGroup("💉 Injecting tokens into package directory")

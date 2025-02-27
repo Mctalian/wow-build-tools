@@ -13,7 +13,8 @@ import (
 
 type GitExternal struct {
 	BaseVcs
-	metadata *ExternalEntry
+	forceExternals bool
+	metadata       *ExternalEntry
 }
 
 func (gE *GitExternal) Checkout() error {
@@ -22,7 +23,7 @@ func (gE *GitExternal) Checkout() error {
 	e := gE.metadata
 
 	// Instantiate the last-updated helper for the cache.
-	helper := NewLastUpdatedHelper(repoCachePath, ".lastUpdated", e.LogGroup)
+	helper := NewLastUpdatedHelper(repoCachePath, ".lastUpdated", gE.forceExternals, e.LogGroup)
 	lastUpdatedPath := helper.FilePath(e.Tag)
 
 	// If forced, delete any existing marker; otherwise, if the marker exists and is fresh, skip heavy operations.
@@ -181,12 +182,13 @@ func (e *GitExternal) getRepoCachePath() string {
 	return e.metadata.RepoCacheDir
 }
 
-func NewGitExternal(e *ExternalEntry) (*GitExternal, error) {
+func NewGitExternal(e *ExternalEntry, forceExternals bool) (*GitExternal, error) {
 	if e.EType != Git {
 		return nil, fmt.Errorf("external entry is not a git type")
 	}
 
 	return &GitExternal{
-		metadata: e,
+		metadata:       e,
+		forceExternals: forceExternals,
 	}, nil
 }

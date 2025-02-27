@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 	"github.com/McTalian/wow-build-tools/internal/upload"
@@ -52,8 +51,8 @@ var wagoCmd = &cobra.Command{
 		defer os.Remove(tmpToc.Name())
 		defer tmpToc.Close()
 
-		changelogPath := f.UploadChangelog
-		if f.UploadChangelog == "" {
+		changelogPath := UploadChangelog
+		if UploadChangelog == "" {
 			tmpChangelog, err := os.CreateTemp(tmp, "wbtChangelog*.md")
 			if err != nil {
 				logger.Error("Could not create temporary changelog file: %v", err)
@@ -82,7 +81,7 @@ var wagoCmd = &cobra.Command{
 		}
 
 		interfaceStringList := []string{}
-		for _, i := range f.UploadInterfaceVersions {
+		for _, i := range UploadInterfaceVersions {
 			interfaceStringList = append(interfaceStringList, fmt.Sprintf("%d", i))
 		}
 
@@ -105,11 +104,12 @@ var wagoCmd = &cobra.Command{
 		}
 
 		wagoArgs := upload.UploadWagoArgs{
-			ZipPath:     f.UploadInput,
-			FileLabel:   f.UploadLabel,
-			ReleaseType: f.UploadReleaseType,
+			ZipPath:     UploadInput,
+			FileLabel:   UploadLabel,
+			ReleaseType: UploadReleaseType,
 			TocFiles:    []*toc.Toc{tocFile},
 			Changelog:   changelog,
+			WagoId:      wagoId,
 		}
 
 		err = upload.UploadToWago(wagoArgs)
@@ -133,7 +133,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// wagoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	wagoCmd.Flags().StringVarP(&f.WagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
+	wagoCmd.Flags().StringVarP(&wagoId, "wagoId", "a", "", "Set the Wago project ID for uploading. (Use 0 to unset the TOC value)")
 	err := wagoCmd.MarkFlagRequired("wagoId")
 	if err != nil {
 		panic(err)

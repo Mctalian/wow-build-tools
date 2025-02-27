@@ -14,11 +14,12 @@ import (
 // SvnExternal implements the eType.External interface for SVN repositories.
 type SvnExternal struct {
 	BaseVcs
-	metadata *ExternalEntry
+	metadata       *ExternalEntry
+	forceExternals bool
 }
 
 // NewSvnExternal creates a new instance of SvnExternal.
-func NewSvnExternal(e *ExternalEntry) (*SvnExternal, error) {
+func NewSvnExternal(e *ExternalEntry, forceExternals bool) (*SvnExternal, error) {
 	if e.EType != Svn {
 		return nil, fmt.Errorf("external entry is not an svn type")
 	}
@@ -28,7 +29,8 @@ func NewSvnExternal(e *ExternalEntry) (*SvnExternal, error) {
 	}
 
 	return &SvnExternal{
-		metadata: e,
+		metadata:       e,
+		forceExternals: forceExternals,
 	}, nil
 }
 
@@ -50,7 +52,7 @@ func (s *SvnExternal) getSvnTag() (*svnTagMeta, error) {
 	tagUrl := strings.Split(s.GetURL(), "/trunk")[0] + "/tags"
 
 	// Create a helper for lastUpdated markers specific to tag lookups.
-	helper := NewLastUpdatedHelper(s.metadata.RepoCacheDir, ".lastUpdated_GetTag", s.metadata.LogGroup)
+	helper := NewLastUpdatedHelper(s.metadata.RepoCacheDir, ".lastUpdated_GetTag", s.forceExternals, s.metadata.LogGroup)
 
 	// Search for any existing lastUpdated marker files.
 	pattern := filepath.Join(s.metadata.RepoCacheDir, helper.FilePrefix+"_*")
@@ -173,7 +175,7 @@ func (s *SvnExternal) Checkout() error {
 	}
 
 	// Prepare the marker filename. For instance, use ".lastUpdated" with an optional tag suffix.
-	helper := NewLastUpdatedHelper(repoCachePath, ".lastUpdated", e.LogGroup)
+	helper := NewLastUpdatedHelper(repoCachePath, ".lastUpdated", s.forceExternals, e.LogGroup)
 	lastUpdatedPath := helper.FilePath(e.Tag)
 
 	// If forcing externals, delete the marker.

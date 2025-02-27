@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,9 +31,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestIgnores",
 			"test_ignores",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = false
+				skipUpload = true
+				skipZip = true
+				forceExternals = false
 			},
 			func(t *testing.T, output string) {
 				matches, err := filepath.Glob(filepath.Join(output, "*.zip"))
@@ -61,9 +60,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestSvnExternals",
 			"test_svn_externals",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = true
+				skipUpload = true
+				skipZip = true
+				forceExternals = true
 			},
 			func(t *testing.T, output string) {
 				assert.DirExists(t, filepath.Join(output, "TestSvnExternals"))
@@ -88,9 +87,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestGitExternals",
 			"test_git_externals",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = true
+				skipUpload = true
+				skipZip = true
+				forceExternals = true
 			},
 			func(t *testing.T, output string) {
 				assert.DirExists(t, filepath.Join(output, "TestGitExternals"))
@@ -109,9 +108,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestZip",
 			"test_zip",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = false
-				cliflags.ForceExternals = false
+				skipUpload = true
+				skipZip = false
+				forceExternals = false
 			},
 			func(t *testing.T, output string) {
 				// time.Sleep(1 * time.Second) // Wait for the zip file to be created
@@ -127,9 +126,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestZipNoLib",
 			"test_zip_nolib",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = false
-				cliflags.ForceExternals = false
+				skipUpload = true
+				skipZip = false
+				forceExternals = false
 			},
 			func(t *testing.T, output string) {
 				// time.Sleep(1 * time.Second) // Wait for the zip file to be created
@@ -145,9 +144,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestManualChangelog",
 			"test_manual_changelog",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = false
+				skipUpload = true
+				skipZip = true
+				forceExternals = false
 			},
 			func(t *testing.T, output string) {
 				assert.DirExists(t, filepath.Join(output, "TestManualChangelog"))
@@ -160,9 +159,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestChangelogTitle",
 			"test_changelog_title",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = false
+				skipUpload = true
+				skipZip = true
+				forceExternals = false
 			},
 			func(t *testing.T, output string) {
 				assert.DirExists(t, filepath.Join(output, "TestChangelogTitle"))
@@ -178,9 +177,9 @@ func TestAddonProcessing(t *testing.T) {
 			"TestLicenseExist",
 			"test_license_exist",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = false
+				skipUpload = true
+				skipZip = true
+				forceExternals = false
 			},
 			func(t *testing.T, output string) {
 				assert.DirExists(t, filepath.Join(output, "TestLicenseExist"))
@@ -196,10 +195,10 @@ func TestAddonProcessing(t *testing.T) {
 			"TestLicenseDownload",
 			"test_license_download",
 			func(t *testing.T) {
-				cliflags.SkipUpload = true
-				cliflags.SkipZip = true
-				cliflags.ForceExternals = false
-				cliflags.CurseId = "1082791"
+				skipUpload = true
+				skipZip = true
+				forceExternals = false
+				curseId = "1082791"
 			},
 			func(t *testing.T, output string) {
 				assert.DirExists(t, filepath.Join(output, "TestLicenseDownload"))

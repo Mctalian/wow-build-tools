@@ -30,13 +30,55 @@ import (
 	"sync"
 	"time"
 
-	"github.com/McTalian/wow-build-tools/internal/cliflags"
-	"github.com/McTalian/wow-build-tools/internal/logger"
-	"github.com/McTalian/wow-build-tools/internal/toc"
 	"github.com/fsnotify/fsnotify"
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/McTalian/wow-build-tools/internal/cmdimpl"
+	"github.com/McTalian/wow-build-tools/internal/logger"
+	"github.com/McTalian/wow-build-tools/internal/osutil"
+	"github.com/McTalian/wow-build-tools/internal/toc"
 )
+
+var copyToWowDirs bool
+
+var addonDirs []string
+var destinationPaths []string
+var wowPaths map[string]string
+
+func copyToWow(l *logger.Logger, done chan error) {
+	if copyToWowDirs {
+		l.Info("Copying to WoW directories...")
+		lg := logger.NewLogGroup("Copy to WoW Directories", l)
+
+		var copyWg sync.WaitGroup
+		for _, path := range destinationPaths {
+			copyWg.Add(1)
+			go func(path string) {
+				defer copyWg.Done()
+				interfaceDir := filepath.Join(path, "Interface", "AddOns")
+				if _, err := os.Stat(interfaceDir); os.IsNotExist(err) {
+					os.MkdirAll(interfaceDir, os.ModePerm)
+				}
+
+				for _, dir := range addonDirs {
+					src := filepath.Join(releaseDir, dir)
+					dst := filepath.Join(interfaceDir, dir)
+					l.Debug("Copying %s to %s", src, dst)
+					err := copyDir(src, dst)
+					if err != nil {
+						l.Error("Error copying %s to %s: %v", src, dst, err)
+						done <- err
+					}
+				}
+			}(path)
+		}
+
+		copyWg.Wait()
+		lg.Flush()
+	}
+}
 
 // copyFile copies a single file from src to dst.
 func copyFile(src, dst string) error {
@@ -131,12 +173,18 @@ func copyDir(src, dst string) error {
 	return nil
 }
 
-func triggerBuild(cmd *cobra.Command, done chan error) {
-	cliflags.SkipUpload = true
-	cliflags.SkipChangelog = true
-	cliflags.KeepPackageDir = true
+func triggerBuild(done chan error) {
+	buildArgs := &cmdimpl.BuildArgs{
+		TopDir:         topDir,
+		ReleaseDir:     releaseDir,
+		SkipChangelog:  true,
+		SkipUpload:     true,
+		SkipZip:        true,
+		KeepPackageDir: true,
+		WatchMode:      true,
+	}
 	logger.Clear()
-	err := buildCmd.RunE(cmd, []string{})
+	err := cmdimpl.Build(buildArgs)
 	if err != nil {
 		logger.Error("Error running build command: %v", err)
 		done <- err
@@ -149,14 +197,52 @@ func triggerBuild(cmd *cobra.Command, done chan error) {
 var watchCmd = &cobra.Command{
 	Use:   "watch",
 	Short: "Run build when files change",
-	Long: `Watches the current directory for changes and runs the build command when a change is detected.
-	The output directory will then be propagated to configured WoW installation directories.`,
+	Long: dedent.Dedent(`
+	Watches the current directory for changes and runs the build command when a change is detected.
+	
+	Running "wow-build-tools link" before running this command is recommended to ensure that the build output directories are symlinked to your WoW installation directories.
+	
+	You can enable "--copyToWowDirs" as an alterative. The build output directories will then be copied to configured WoW installation directories.
+	When copying from WSL to the host system, the copies can be slower than desired.
+	`),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		l := logger.GetSubLog("WATCH")
-		l.SetLogLevel(logger.VERBOSE)
-		cliflags.WatchMode = true
+		if LevelVerbose {
+			l.SetLogLevel(logger.VERBOSE)
+		} else if LevelDebug {
+			l.SetLogLevel(logger.DEBUG)
+		} else {
+			l.SetLogLevel(logger.INFO)
+		}
 
-		err := os.RemoveAll(cliflags.ReleaseDir)
+		topdir := topDir
+		if !cmd.Flags().Changed("releaseDir") {
+			l.Warn("No release directory specified, defaulting to .release in top directory %s", topdir)
+			releaseDir = filepath.Join(topdir, ".release")
+		}
+
+		if _, err := os.Stat(releaseDir); os.IsNotExist(err) {
+			err := os.MkdirAll(releaseDir, os.ModePerm)
+			if err != nil {
+				l.Error("Error creating release directory: %v", err)
+				return err
+			}
+		}
+
+		logger.Warn("IsWSL: %t", osutil.IsWSL())
+
+		if osutil.IsWSL() && !copyToWowDirs {
+			winPath, err := osutil.GetWindowsPath(releaseDir)
+			if err != nil {
+				l.Error("Error getting Windows path: %v", err)
+				return err
+			}
+
+			l.Warn("To create symlinks to your release directory in WSL, run this command in Windows in an elevated command prompt:")
+			l.Warn("wow-build-tools.exe link -w \"%s\"", winPath)
+		}
+
+		err := os.RemoveAll(releaseDir)
 		if err != nil && !os.IsNotExist(err) {
 			logger.Error("Error removing release dir")
 			return err
@@ -169,95 +255,69 @@ var watchCmd = &cobra.Command{
 		}
 		defer watcher.Close()
 
-		wowPaths := viper.GetStringMapString("wowPath")
-		if len(wowPaths) <= 1 {
-			l.Error("No WoW paths configured, please run 'wow-build-tools config' to configure your WoW paths")
-			return fmt.Errorf("no WoW paths configured")
-		}
-		destinationPaths := make([]string, 0, len(wowPaths)-1)
-		for key, path := range wowPaths {
-			if key == "base" {
-				continue
+		if copyToWowDirs {
+			wowPaths = viper.GetStringMapString("wowPath")
+			if len(wowPaths) <= 1 {
+				l.Error("No WoW paths configured, please run 'wow-build-tools config' to configure your WoW paths")
+				return fmt.Errorf("no WoW paths configured")
 			}
-			destinationPaths = append(destinationPaths, path)
+			destinationPaths = make([]string, 0, len(wowPaths)-1)
+			for key, path := range wowPaths {
+				if key == "base" {
+					continue
+				}
+				destinationPaths = append(destinationPaths, path)
+			}
 		}
 
 		debounceDuration := 500 * time.Millisecond
 		var debounceTimer *time.Timer
-		var debounceMu sync.Mutex
 
 		done := make(chan error)
 		go func() {
+			// Reset the debounce timer. When it fires, run the build.
+			debounceTimer = time.AfterFunc(debounceDuration, func() {
+				// It's a good idea to ensure builds don’t run concurrently.
+				// You can use a mutex, a channel, or a boolean flag as in your current implementation.
+				l.Debug("Debounced change detected, triggering build...")
+				triggerBuild(done)
+
+				if copyToWowDirs {
+					l.Info("Build complete, determining outputs to copy...")
+					dirEntries, err := os.ReadDir(releaseDir)
+					if err != nil {
+						l.Error("Error reading release directory: %v", err)
+						done <- err
+					}
+
+					addonDirs = []string{}
+					for _, entry := range dirEntries {
+						if entry.IsDir() {
+							addonDirs = append(addonDirs, entry.Name())
+						}
+					}
+
+					copyToWow(l, done)
+				}
+
+				l.Info("Watching for changes... Press Ctrl+C to stop.")
+			})
+			debounceTimer.Stop()
+
 			for {
 				select {
 				case event, ok := <-watcher.Events:
 					if !ok {
 						done <- fmt.Errorf("error reading from watcher")
 					}
-					if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-						if strings.Contains(event.Name, cliflags.ReleaseDir) {
-							l.Warn("Skipping change event on release directory")
+					if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Rename) != 0 {
+						if strings.Contains(event.Name, releaseDir) {
+							l.Debug("Skipping change event on release directory")
 							continue
 						}
 
-						if debounceTimer != nil {
-							debounceTimer.Stop()
-						}
-						l.Debug("Change detected on %s, debouncing...", event.Name)
-						// Reset the debounce timer. When it fires, run the build.
-						debounceTimer = time.AfterFunc(debounceDuration, func() {
-							// It's a good idea to ensure builds don’t run concurrently.
-							// You can use a mutex, a channel, or a boolean flag as in your current implementation.
-							l.Debug("Debounced change detected, triggering build...")
-							triggerBuild(cmd, done)
-
-							l.Info("Build complete, determining outputs to copy...")
-							dirEntries, err := os.ReadDir(cliflags.ReleaseDir)
-							if err != nil {
-								l.Error("Error reading release directory: %v", err)
-								done <- err
-							}
-
-							addonDirs := []string{}
-							for _, entry := range dirEntries {
-								if entry.IsDir() {
-									addonDirs = append(addonDirs, entry.Name())
-								}
-							}
-
-							l.Info("Copying to WoW directories...")
-							lg := logger.NewLogGroup("Copy to WoW Directories", l)
-
-							var copyWg sync.WaitGroup
-							for _, path := range destinationPaths {
-								copyWg.Add(1)
-								go func(path string) {
-									defer copyWg.Done()
-									interfaceDir := filepath.Join(path, "Interface", "AddOns")
-									if _, err := os.Stat(interfaceDir); os.IsNotExist(err) {
-										os.MkdirAll(interfaceDir, os.ModePerm)
-									}
-
-									for _, dir := range addonDirs {
-										src := filepath.Join(cliflags.ReleaseDir, dir)
-										dst := filepath.Join(interfaceDir, dir)
-										l.Debug("Copying %s to %s", src, dst)
-										err := copyDir(src, dst)
-										if err != nil {
-											l.Error("Error copying %s to %s: %v", src, dst, err)
-											done <- err
-										}
-									}
-								}(path)
-							}
-
-							copyWg.Wait()
-							lg.Flush()
-
-							debounceMu.Unlock()
-							l.Info("Watching for changes...")
-						})
-						debounceMu.Lock()
+						debounceTimer.Reset(debounceDuration)
+						l.Debug("Change %s detected on %s, debouncing...", event.Op, event.Name)
 					}
 				case err, ok := <-watcher.Errors:
 					if !ok {
@@ -268,11 +328,6 @@ var watchCmd = &cobra.Command{
 				}
 			}
 		}()
-
-		topdir := cliflags.TopDir
-		if cmd.Flags().Changed("topDir") && !cmd.Flags().Changed("releaseDir") {
-			cliflags.ReleaseDir = filepath.Join(topdir, ".release")
-		}
 
 		tree, err := toc.GetTocFileTree(topdir)
 		if err != nil {
@@ -318,7 +373,7 @@ var watchCmd = &cobra.Command{
 			l.Debug("Watching directory: %s", dir)
 		}
 
-		l.Info("Watching for changes...")
+		l.Info("Watching for changes... Press Ctrl+C to stop.")
 
 		<-done
 
@@ -337,6 +392,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	watchCmd.Flags().StringVarP(&cliflags.TopDir, "topDir", "t", ".", "Top level directory to watch for changes")
-	watchCmd.Flags().StringVarP(&cliflags.ReleaseDir, "releaseDir", "r", "./.release", "Directory to copy output to")
+	watchCmd.Flags().StringVarP(&topDir, "topDir", "t", ".", "Top level directory to watch for changes")
+	watchCmd.Flags().StringVarP(&releaseDir, "releaseDir", "r", "."+string(os.PathSeparator)+".release", "Directory to copy output to")
+	watchCmd.Flags().BoolVarP(&copyToWowDirs, "copyToWowDirs", "w", false, "Copy output to configured WoW directories.")
 }

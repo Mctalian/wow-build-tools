@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 )
@@ -56,17 +55,12 @@ func locateWowiId(tocFiles []*toc.Toc) (wowiId string, err error) {
 	return
 }
 
-func getWowiId(tocFiles []*toc.Toc) (wowiId string, err error) {
-	if f.SkipUpload {
-		err = ErrNoWowiUpload
-		return
-	}
-
-	if f.WowiId != "" {
-		if f.WowiId == "0" {
+func getWowiId(tocFiles []*toc.Toc, wowiIdFlag string) (wowiId string, err error) {
+	if wowiIdFlag != "" {
+		if wowiIdFlag == "0" {
 			wowiId = ""
 		} else {
-			wowiId = f.WowiId
+			wowiId = wowiIdFlag
 		}
 	} else {
 		wowiId, err = locateWowiId(tocFiles)
@@ -275,15 +269,22 @@ type UploadWowiArgs struct {
 	Changelog      *changelog.Changelog
 	ReleaseType    string
 	WowiArchiveOld bool
+	SkipUpload     bool
+	WowiId         string
 }
 
 func UploadToWowi(args UploadWowiArgs) error {
 	logGroup := logger.NewLogGroup("🛜  Uploading to WoW Interface")
 	defer logGroup.Flush(true)
 
+	if args.SkipUpload {
+		logGroup.Verbose("Skipping WoW Interface upload")
+		return nil
+	}
+
 	tocFiles := args.TocFiles
 
-	wowiId, err := getWowiId(tocFiles)
+	wowiId, err := getWowiId(tocFiles, args.WowiId)
 	if err != nil {
 		if err == ErrNoWowiId || err == ErrNoWowiUpload {
 			logGroup.Verbose("Skipping WoW Interface upload")
