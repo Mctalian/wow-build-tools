@@ -23,20 +23,24 @@ var currentLevel = INFO
 
 // SetLogLevel sets the logging level
 func SetLogLevel(level LogLevel) {
-	currentLevel = level
+	DefaultLogger.level = level
 }
-
-var warningsEncountered = []string{}
-var timings = []string{}
 
 // Logger represents a logger instance with a prefix
 type Logger struct {
-	prefix string
+	prefix              string
+	level               LogLevel
+	warningsEncountered []string
+	timings             []string
+}
+
+func (l *Logger) SetLogLevel(newLevel LogLevel) {
+	l.level = newLevel
 }
 
 // GetSubLog creates a sub-logger with a specific prefix
 func GetSubLog(prefix string) *Logger {
-	return &Logger{prefix: prefix}
+	return &Logger{prefix: prefix, level: currentLevel, timings: []string{}, warningsEncountered: []string{}}
 }
 
 func handleFormat(format string, v ...interface{}) string {
@@ -47,7 +51,7 @@ func handleFormat(format string, v ...interface{}) string {
 }
 
 func (l *Logger) createPrefix(prefix string) string {
-	if currentLevel > VERBOSE {
+	if l.level > VERBOSE {
 		return ""
 	}
 
@@ -59,7 +63,7 @@ func (l *Logger) createPrefix(prefix string) string {
 
 // Verbose logs verbose messages
 func (l *Logger) Verbose(format string, v ...interface{}) {
-	if currentLevel <= VERBOSE {
+	if l.level <= VERBOSE {
 		prefix := l.createPrefix("V")
 		log.Print(color.New(color.BgWhite, color.FgBlack).Sprint(prefix + handleFormat(format, v...)))
 	}
@@ -67,7 +71,7 @@ func (l *Logger) Verbose(format string, v ...interface{}) {
 
 // Debug logs debug messages if the level is set to DEBUG
 func (l *Logger) Debug(format string, v ...interface{}) {
-	if currentLevel <= DEBUG {
+	if l.level <= DEBUG {
 		prefix := l.createPrefix("D")
 		log.Print(color.CyanString(prefix + handleFormat(format, v...)))
 	}
@@ -75,56 +79,61 @@ func (l *Logger) Debug(format string, v ...interface{}) {
 
 // Info logs informational messages
 func (l *Logger) Info(format string, v ...interface{}) {
-	if currentLevel <= INFO {
+	if l.level <= INFO {
 		prefix := l.createPrefix("I")
 		log.Print(color.BlueString(prefix + handleFormat(format, v...)))
 	}
 }
 
+func (l *Logger) Clear() {
+	l.warningsEncountered = []string{}
+	l.timings = []string{}
+}
+
 // Warn logs warning messages
 func (l *Logger) Warn(format string, v ...interface{}) {
-	if currentLevel <= WARN {
+	if l.level <= WARN {
 		prefix := l.createPrefix("W")
 		warning := color.YellowString(prefix + handleFormat(format, v...))
 		log.Print(warning)
-		warningsEncountered = append(warningsEncountered, warning)
+		l.warningsEncountered = append(l.warningsEncountered, warning)
 	}
 }
 
 // Error logs error messages
 func (l *Logger) Error(format string, v ...interface{}) {
-	if currentLevel <= ERROR {
+	if l.level <= ERROR {
 		prefix := l.createPrefix("E")
 		log.Print(color.RedString(prefix + handleFormat(format, v...)))
 	}
 }
 
 func (l *Logger) Timing(format string, v ...interface{}) {
-	if currentLevel <= INFO {
+	if l.level <= INFO {
 		prefix := l.createPrefix("T")
 		tStr := color.MagentaString(prefix + handleFormat(format, v...))
 		log.Print(tStr)
-		timings = append(timings, tStr)
+		l.timings = append(l.timings, tStr)
 	}
 }
 
 func (l *Logger) TimingNoLog(format string, v ...interface{}) {
-	if currentLevel <= INFO {
+	if l.level <= INFO {
 		prefix := l.createPrefix("T")
 		tStr := color.MagentaString(prefix + handleFormat(format, v...))
-		timings = append(timings, tStr)
+		l.timings = append(l.timings, tStr)
 	}
 }
 
 func (l *Logger) Prompt(format string, v ...interface{}) {
-	if currentLevel <= INFO {
+	if l.level <= INFO {
 		prefix := l.createPrefix("?")
 		fmt.Print(color.New(color.Bold, color.FgHiYellow).Sprint(prefix + handleFormat(format, v...)))
 	}
 }
 
 func (l *Logger) Success(format string, v ...interface{}) {
-	if currentLevel <= INFO {
+	if l.level <= WARN {
 		prefix := l.createPrefix("✔")
 		log.Print(color.New(color.Bold, color.FgHiGreen).Sprint(prefix + handleFormat(format, v...)))
 	}
@@ -137,7 +146,7 @@ func InitLogger() {
 }
 
 // Global logger instance without a prefix
-var DefaultLogger = &Logger{prefix: ""}
+var DefaultLogger = &Logger{prefix: "", level: currentLevel, timings: []string{}, warningsEncountered: []string{}}
 
 // Global logging functions without requiring a sub-logger
 func Verbose(format string, v ...interface{})     { DefaultLogger.Verbose(format, v...) }
@@ -149,28 +158,31 @@ func Timing(format string, v ...interface{})      { DefaultLogger.Timing(format,
 func TimingNoLog(format string, v ...interface{}) { DefaultLogger.TimingNoLog(format, v...) }
 func Prompt(format string, v ...interface{})      { DefaultLogger.Prompt(format, v...) }
 func Success(format string, v ...interface{})     { DefaultLogger.Success(format, v...) }
+func Clear()                                      { DefaultLogger.Clear() }
+func TimingSummary()                              { DefaultLogger.TimingSummary() }
+func WarningsEncountered()                        { DefaultLogger.WarningsEncountered() }
 
-func TimingSummary() {
-	if len(timings) == 0 {
+func (l *Logger) TimingSummary() {
+	if len(l.timings) == 0 {
 		return
 	}
 	fmt.Println("")
 
 	Info("Timing Summary:")
-	for _, timing := range timings {
+	for _, timing := range l.timings {
 		Timing("* %s", timing)
 	}
 }
 
-func WarningsEncountered() {
-	if len(warningsEncountered) == 0 {
+func (l *Logger) WarningsEncountered() {
+	if len(l.warningsEncountered) == 0 {
 		return
 	}
 	fmt.Println("")
 
 	Error("One or more warnings were encountered during the build process.")
 	Error("For your convenience, here is a list of all warnings encountered:")
-	for _, warning := range warningsEncountered {
+	for _, warning := range l.warningsEncountered {
 		Warn("* %s", warning)
 	}
 }

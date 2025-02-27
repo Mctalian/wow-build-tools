@@ -43,11 +43,12 @@ func ConfirmAndSelfUpdate() {
 
 	logger.Prompt("Do you want to update to %s? (y/N): ", latest.Version)
 	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil || (input != "y\n" && input != "n\n" && input != "\n") {
-		logger.Error("Invalid input (%s), needed 'y' or 'n'", strings.TrimSuffix(input, "\n"))
+	input = strings.ToLower(strings.TrimSpace(input))
+	if err != nil || (input != "y" && input != "n" && input != "") {
+		logger.Error("Invalid input (%s), needed 'y' or 'n'", input)
 		return
 	}
-	if input == "n\n" || input == "\n" {
+	if input == "n" || input == "" {
 		logger.Info("Skipping update, if you change your mind, run `wow-build-tools update` at any time")
 		return
 	}

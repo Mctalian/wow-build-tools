@@ -2,6 +2,7 @@ package external
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/McTalian/wow-build-tools/internal/github"
@@ -72,7 +73,7 @@ func TestGetRepoCachePath(t *testing.T) {
 		cachePath, err = os.UserHomeDir()
 		require.NoError(t, err)
 	}
-	expected := cachePath + "/.wow-build-tools/.cache/externals/https:__github.com_user_repo_v1.0.0"
+	expected := filepath.Join(cachePath, ".wow-build-tools", ".cache", "externals", "https:__github.com_user_repo_v1.0.0")
 
 	if got := e.GetRepoCachePath(); got != expected {
 		t.Errorf("GetRepoCachePath() = %v, want %v", got, expected)

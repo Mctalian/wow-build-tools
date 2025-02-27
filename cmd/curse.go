@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/pkg"
 	"github.com/McTalian/wow-build-tools/internal/toc"
@@ -53,8 +52,8 @@ var curseCmd = &cobra.Command{
 		defer os.Remove(tmpToc.Name())
 		defer tmpToc.Close()
 
-		changelogPath := f.UploadChangelog
-		if f.UploadChangelog == "" {
+		changelogPath := UploadChangelog
+		if UploadChangelog == "" {
 			tmpChangelog, err := os.CreateTemp(tmp, "wbtChangelog*.md")
 			if err != nil {
 				logger.Error("Could not create temporary changelog file: %v", err)
@@ -83,7 +82,7 @@ var curseCmd = &cobra.Command{
 		}
 
 		interfaceStringList := []string{}
-		for _, i := range f.UploadInterfaceVersions {
+		for _, i := range UploadInterfaceVersions {
 			interfaceStringList = append(interfaceStringList, fmt.Sprintf("%d", i))
 		}
 
@@ -109,11 +108,12 @@ var curseCmd = &cobra.Command{
 
 		curseArgs := upload.UploadCurseArgs{
 			TocFiles:    []*toc.Toc{tocFile},
-			ZipPath:     f.UploadInput,
-			FileLabel:   f.UploadLabel,
+			ZipPath:     UploadInput,
+			FileLabel:   UploadLabel,
 			PkgMeta:     pkgMeta,
 			Changelog:   changelog,
-			ReleaseType: f.UploadReleaseType,
+			ReleaseType: UploadReleaseType,
+			CurseId:     curseId,
 		}
 
 		err = upload.UploadToCurse(curseArgs)
@@ -137,7 +137,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 
-	curseCmd.Flags().StringVarP(&f.CurseId, "curseId", "p", "", "Set the CurseForge project ID for localization and uploading. (Use 0 to unset the TOC value)")
+	curseCmd.Flags().StringVarP(&curseId, "curseId", "p", "", "Set the CurseForge project ID for localization and uploading. (Use 0 to unset the TOC value)")
 	err := curseCmd.MarkFlagRequired("curseId")
 	if err != nil {
 		panic(err)

@@ -27,12 +27,13 @@ import (
 	"strings"
 
 	"github.com/McTalian/wow-build-tools/internal/changelog"
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/toc"
 	"github.com/McTalian/wow-build-tools/internal/upload"
 	"github.com/spf13/cobra"
 )
+
+var UploadProjectVersion string
 
 // wowiCmd represents the wowi command
 var wowiCmd = &cobra.Command{
@@ -52,8 +53,8 @@ var wowiCmd = &cobra.Command{
 		defer os.Remove(tmpToc.Name())
 		defer tmpToc.Close()
 
-		changelogPath := f.UploadChangelog
-		if f.UploadChangelog == "" {
+		changelogPath := UploadChangelog
+		if UploadChangelog == "" {
 			tmpChangelog, err := os.CreateTemp(tmp, "wbtChangelog*.md")
 			if err != nil {
 				logger.Error("Could not create temporary changelog file: %v", err)
@@ -82,7 +83,7 @@ var wowiCmd = &cobra.Command{
 		}
 
 		interfaceStringList := []string{}
-		for _, i := range f.UploadInterfaceVersions {
+		for _, i := range UploadInterfaceVersions {
 			interfaceStringList = append(interfaceStringList, fmt.Sprintf("%d", i))
 		}
 
@@ -106,10 +107,11 @@ var wowiCmd = &cobra.Command{
 
 		w := upload.UploadWowiArgs{
 			TocFiles:       []*toc.Toc{tocFile},
-			ProjectVersion: f.UploadProjectVersion,
-			ZipPath:        f.UploadInput,
-			FileLabel:      f.UploadLabel,
+			ProjectVersion: UploadProjectVersion,
+			ZipPath:        UploadInput,
+			FileLabel:      UploadLabel,
 			Changelog:      changelog,
+			WowiId:         wowiId,
 		}
 
 		err = upload.UploadToWowi(w)
@@ -134,12 +136,12 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// wowiCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	wowiCmd.Flags().StringVarP(&f.WowiId, "wowiId", "w", "", "Set the WoW Interface project ID for uploading. (Use 0 to unset the TOC value)")
+	wowiCmd.Flags().StringVarP(&wowiId, "wowiId", "w", "", "Set the WoW Interface project ID for uploading. (Use 0 to unset the TOC value)")
 	err := wowiCmd.MarkFlagRequired("wowiId")
 	if err != nil {
 		panic(err)
 	}
-	wowiCmd.Flags().StringVar(&f.UploadProjectVersion, "project-version", "", "Set the project version for uploading")
+	wowiCmd.Flags().StringVar(&UploadProjectVersion, "project-version", "", "Set the project version for uploading")
 	err = wowiCmd.MarkFlagRequired("project-version")
 	if err != nil {
 		panic(err)

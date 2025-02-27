@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/McTalian/wow-build-tools/internal/repo"
 	"github.com/McTalian/wow-build-tools/internal/tokens"
@@ -47,6 +46,7 @@ type Injector struct {
 	pkgDir          string
 	logGroup        *logger.LogGroup
 	NoLibStripFiles []string
+	unixLineEndings bool
 }
 
 func (i *Injector) findAndReplaceInFile(filePath string) error {
@@ -60,7 +60,7 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 
 	if strings.Contains(output, tokens.FilePrefix) {
 		// Need to get the file info from VCS
-		origFilePath := strings.TrimPrefix(filePath, i.pkgDir+"/")
+		origFilePath := strings.TrimPrefix(filePath, i.pkgDir+string(os.PathSeparator))
 		stm, err := i.vcs.GetFileInjectionValues(origFilePath)
 		if err != nil {
 			return err
@@ -186,7 +186,7 @@ func (i *Injector) findAndReplaceInFile(filePath string) error {
 		i.NoLibStripFiles = append(i.NoLibStripFiles, filePath)
 	}
 
-	if !cliflags.UnixLineEndings {
+	if !i.unixLineEndings {
 		logger.Verbose("Enforcing Windows line endings on %s", filePath)
 		output = strings.ReplaceAll(output, "\n", "\r\n")
 	}
@@ -207,7 +207,7 @@ func (i *Injector) ensureLineEndings(filePath string) error {
 
 	output := string(input)
 
-	if cliflags.UnixLineEndings {
+	if i.unixLineEndings {
 		i.logGroup.Verbose("Enforcing unix line endings on %s", filePath)
 		output = strings.ReplaceAll(output, "\r\n", "\n")
 	} else {
@@ -254,7 +254,7 @@ func (i *Injector) Execute() error {
 	})
 }
 
-func NewInjector(simpleTokens tokens.SimpleTokenMap, vR repo.VcsRepo, pkgDir string, buildTypeTokens tokens.BuildTypeTokenMap) (*Injector, error) {
+func NewInjector(simpleTokens tokens.SimpleTokenMap, vR repo.VcsRepo, pkgDir string, buildTypeTokens tokens.BuildTypeTokenMap, unixLineEndings bool) (*Injector, error) {
 	if len(simpleTokens) == 0 {
 		return nil, fmt.Errorf("no simple tokens provided")
 	}
@@ -300,6 +300,7 @@ func NewInjector(simpleTokens tokens.SimpleTokenMap, vR repo.VcsRepo, pkgDir str
 		buildTypeTokens: normalizeBuildTypeMap,
 		vcs:             vR,
 		pkgDir:          pkgDir,
+		unixLineEndings: unixLineEndings,
 	}
 
 	return &i, nil

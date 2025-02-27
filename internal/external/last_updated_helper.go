@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	f "github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
@@ -20,11 +19,11 @@ type LastUpdatedHelper struct {
 }
 
 // NewLastUpdatedHelper returns an instance configured for the given cache directory and marker prefix.
-func NewLastUpdatedHelper(cacheDir string, prefix string, log *logger.LogGroup) *LastUpdatedHelper {
+func NewLastUpdatedHelper(cacheDir string, prefix string, forceExternals bool, log *logger.LogGroup) *LastUpdatedHelper {
 	return &LastUpdatedHelper{
 		CacheDir:   cacheDir,
 		FilePrefix: prefix,
-		Force:      f.ForceExternals,
+		Force:      forceExternals,
 		Log:        log,
 	}
 }

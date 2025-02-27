@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/McTalian/wow-build-tools/internal/cliflags"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 )
 
@@ -160,8 +159,8 @@ func normalizeGameVersion(gameVersion string) error {
 	return nil
 }
 
-func ParseGameVersionFlag() error {
-	return normalizeGameVersion(cliflags.GameVersion)
+func ParseGameVersionFlag(gameVersionFlag string) error {
+	return normalizeGameVersion(gameVersionFlag)
 }
 
 func GetGameFlavorVersionsMap() map[GameFlavor][]string {

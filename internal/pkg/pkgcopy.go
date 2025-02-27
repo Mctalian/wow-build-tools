@@ -150,7 +150,7 @@ func (p *PkgCopy) CopyToPackageDir(logGroup *logger.LogGroup) error {
 			return err
 		}
 
-		prettyPath := strings.TrimPrefix(path, topDir+"/")
+		prettyPath := strings.TrimPrefix(path, topDir+string(os.PathSeparator))
 
 		// Skip hidden files or directories based on their base name.
 		if strings.HasPrefix(d.Name(), ".") && d.Name() != "." && d.Name() != ".." {
@@ -243,7 +243,7 @@ func tryParsePkgMetaIgnores(pkgDir string, logGroup *logger.LogGroup) ([]string,
 	if err != nil {
 		_, ok := err.(*PkgMetaFileNotFound)
 		if ok {
-			shortenedPath := strings.Split(pkgDir, "/")[len(strings.Split(pkgDir, "/"))-1]
+			shortenedPath := strings.Split(pkgDir, string(os.PathSeparator))[len(strings.Split(pkgDir, string(os.PathSeparator)))-1]
 			logGroup.Verbose("No .pkgmeta file found in %s", shortenedPath)
 			return []string{}, nil
 		}

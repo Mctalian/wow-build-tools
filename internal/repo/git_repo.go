@@ -59,15 +59,17 @@ func (gR *GitRepo) GetRepoRoot() string {
 	return gR.repo.GetRepoRoot()
 }
 
+var urlPathSeparator = "/"
+
 func (gR *GitRepo) parseGitHubURL() {
-	gitHubUrl := strings.TrimSuffix(strings.TrimSuffix(gR.originURL, ".git"), "/")
+	gitHubUrl := strings.TrimSuffix(strings.TrimSuffix(gR.originURL, ".git"), urlPathSeparator)
 	segments := strings.Split(gitHubUrl, "github.com")
 	if len(segments) == 2 {
 		httpify := strings.NewReplacer("git@", "https://", "github.com:", "github.com/")
 		gitHubUrl = httpify.Replace(gitHubUrl)
 		gR.gitHubUrl = gitHubUrl
-		slug := strings.TrimPrefix(strings.TrimPrefix(segments[1], "/"), ":")
-		slugSegments := strings.Split(slug, "/")
+		slug := strings.TrimPrefix(strings.TrimPrefix(segments[1], urlPathSeparator), ":")
+		slugSegments := strings.Split(slug, urlPathSeparator)
 		if len(slugSegments) == 2 {
 			gR.gitHubSlug = slug
 		} else {
@@ -143,7 +145,7 @@ func (gR *GitRepo) getIgnores() ([]gitignore.Pattern, error) {
 
 func (gR *GitRepo) IsIgnored(path string, isDir bool) bool {
 	for _, pattern := range gR.ignorePatterns {
-		result := pattern.Match(strings.Split(path, "/"), isDir)
+		result := pattern.Match(strings.Split(path, string(os.PathSeparator)), isDir)
 		if result == gitignore.Exclude {
 			return true
 		}
