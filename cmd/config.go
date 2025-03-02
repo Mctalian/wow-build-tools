@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/McTalian/wow-build-tools/internal/configdir"
 	"github.com/McTalian/wow-build-tools/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,6 +44,12 @@ var wizardMode bool
 var ErrConfigCreationAborted = fmt.Errorf("configuration file creation aborted")
 
 func createConfigFileIfNotExist(localPath string) error {
+	configDir, err := configdir.GetConfigDir()
+	if err != nil {
+		logger.Error("Failed to determine configuration directory: %v", err)
+		return err
+	}
+
 	if configFile == "" || (globalConfig && configFile == localPath) {
 		if configFile == localPath {
 			logger.Info("Local configuration file already exists and will take precedence: %s", configFile)
@@ -61,7 +68,11 @@ func createConfigFileIfNotExist(localPath string) error {
 		if response == "y" || response == "Y" {
 			if globalConfig {
 				logger.Info("Creating global configuration file...")
-				err := viper.SafeWriteConfig()
+				err := os.MkdirAll(configDir, 0755)
+				if err != nil && !os.IsExist(err) {
+					return err
+				}
+				err = viper.SafeWriteConfig()
 				if err != nil {
 					return err
 				}
