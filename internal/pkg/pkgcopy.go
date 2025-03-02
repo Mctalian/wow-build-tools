@@ -110,30 +110,43 @@ func copyExternal(e *external.ExternalEntry, packageDir string) error {
 
 func CopySingleFile(path string, destPath string, logGroup *logger.LogGroup, args ...string) error {
 	prettyPath := path
-	if args != nil {
+	if len(args) > 0 {
 		prettyPath = args[0]
 	}
 
 	if logGroup != nil {
 		logGroup.Info("📑 Copying file %s", prettyPath)
 	}
-	// Open the source file.
+
+	// Open source file in read-only mode
 	srcFile, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("error opening file %s: %v", path, err)
 	}
-	// Create the destination file.
-	destFile, err := os.Create(destPath)
+	defer srcFile.Close()
+
+	// Get file info for mode preservation
+	srcFileInfo, err := srcFile.Stat()
 	if err != nil {
-		srcFile.Close()
+		return fmt.Errorf("error getting file info for %s: %v", path, err)
+	}
+
+	// Create destination file with the same permissions as the source
+	destFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, srcFileInfo.Mode())
+	if err != nil {
 		return fmt.Errorf("error creating file %s: %v", destPath, err)
 	}
-	// Copy file contents.
+	defer destFile.Close()
+
+	// Copy file contents
 	_, err = io.Copy(destFile, srcFile)
-	srcFile.Close()
-	destFile.Close()
 	if err != nil {
 		return fmt.Errorf("error copying file %s to %s: %v", path, destPath, err)
+	}
+
+	// Ensure data is written to disk
+	if err := destFile.Sync(); err != nil {
+		return fmt.Errorf("error syncing file %s: %v", destPath, err)
 	}
 
 	return nil

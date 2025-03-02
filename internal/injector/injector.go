@@ -243,10 +243,12 @@ func (i *Injector) Execute() error {
 		}
 
 		if !isInjectableExtension(ext) {
-			err = i.ensureLineEndings(path)
-			if err != nil {
-				return err
-			}
+			// This causes corruption in binary files.
+			// We probably don't need to worry about line-endings in non-injectable files.
+			// err = i.ensureLineEndings(path)
+			// if err != nil {
+			// 	return err
+			// }
 			return nil
 		}
 

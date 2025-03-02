@@ -33,6 +33,7 @@ import (
 )
 
 var wslPathToAddonReleaseDir string
+var forceLink bool
 
 // linkCmd represents the link command
 var linkCmd = &cobra.Command{
@@ -101,9 +102,18 @@ var linkCmd = &cobra.Command{
 				}
 			}
 			for _, addonDir := range addonDirs {
-				wslPathToAddonReleaseDir = filepath.Join(wowPath, "Interface", "AddOns", addonDir)
-				l.Info("Linking %s to %s", releaseDir, wslPathToAddonReleaseDir)
-				err = os.Symlink(releaseDir, wslPathToAddonReleaseDir)
+				if forceLink {
+					l.Debug("Removing existing symlink %s", filepath.Join(wowPath, "Interface", "AddOns", addonDir))
+					err = os.RemoveAll(filepath.Join(wowPath, "Interface", "AddOns", addonDir))
+					if err != nil && !os.IsNotExist(err) {
+						l.Error("Error removing existing symlink: %v", err)
+						return err
+					}
+				}
+				source := filepath.Join(releaseDir, addonDir)
+				target := filepath.Join(wowPath, "Interface", "AddOns", addonDir)
+				l.Info("Linking %s to %s", source, target)
+				err = os.Symlink(source, target)
 				if err != nil {
 					l.Error("Error creating symlink: %v", err)
 					return err
@@ -129,4 +139,5 @@ func init() {
 	linkCmd.Flags().StringVarP(&topDir, "topDir", "t", ".", "Path to the top level directory of the addon")
 	linkCmd.Flags().StringVarP(&releaseDir, "releaseDir", "r", "", "Path to the release directory of the addon")
 	linkCmd.Flags().StringVarP(&wslPathToAddonReleaseDir, "wsl-path-to-addon-release-dir", "w", "", "Path to the addon release directory in WSL")
+	linkCmd.Flags().BoolVarP(&forceLink, "force", "f", false, "Force linking even if the destination exists (will overwrite)")
 }
