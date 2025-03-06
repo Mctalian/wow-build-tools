@@ -261,11 +261,12 @@ func (s *SvnExternal) Checkout() error {
 			if err != nil {
 				outputStr := string(output)
 				if i < 4 && strings.Contains(outputStr, "E175002") {
+					e.LogGroup.Warn("500 Internal Server Error detected (output: %s), retrying...", outputStr)
 					continue
 				}
 				if i < 4 && strings.Contains(outputStr, "E155000") {
 					// If the checkout fails due to a non-empty directory, remove the directory and retry.
-					e.LogGroup.Warn("SVN: Non-empty directory detected, removing %s and retrying...", repoCachePath)
+					e.LogGroup.Warn("SVN: Non-empty directory detected (output:%s), removing %s and retrying...", outputStr, repoCachePath)
 					err = os.RemoveAll(repoCachePath)
 					if err != nil {
 						return fmt.Errorf("failed to remove existing cache dir at %s: %w", repoCachePath, err)
