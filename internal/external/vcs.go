@@ -2,6 +2,7 @@ package external
 
 type Vcs interface {
 	Checkout() error
+	lookForCurseSlug() error
 }
 
 type VcsType int

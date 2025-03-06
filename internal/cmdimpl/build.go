@@ -514,6 +514,10 @@ func Build(args *BuildArgs) error {
 	l.WarningsEncountered()
 
 	fmt.Println("")
-	l.Success("✨ Successfully packaged %s in ⏱️  %s", projectName, time.Since(start))
+	successMessage := fmt.Sprintf("✨ Successfully packaged %s in ⏱️  %s", projectName, time.Since(start))
+	if args.WatchMode {
+		successMessage = fmt.Sprintf("%s at %s 👀", successMessage, time.Now().Format("15:04:05"))
+	}
+	l.Success("%s", successMessage)
 	return nil
 }

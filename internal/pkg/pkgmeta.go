@@ -22,23 +22,23 @@ type PkgMetaManualChangelog struct {
 
 // PkgMeta represents the structure of the .pkgmeta file
 type PkgMeta struct {
-	PackageAs            string                            `yaml:"package-as"`
-	Externals            map[string]external.ExternalEntry `yaml:"externals"`
-	MoveFolders          map[string]string                 `yaml:"move-folders"`
-	Ignore               []string                          `yaml:"ignore"`
-	RequiredDependencies []string                          `yaml:"required-dependencies"`
-	EmbeddedLibraries    []string                          `yaml:"embedded-libraries"`
-	OptionalDependencies []string                          `yaml:"optional-dependencies"`
-	ToolsUsed            []string                          `yaml:"tools-used"`
-	ManualChangelog      PkgMetaManualChangelog            `yaml:"manual-changelog"`
-	ChangelogTitle       string                            `yaml:"changelog-title"`
-	License              string                            `yaml:"license-output"`
-	ChangelogFromGitHub  bool                              `yaml:"github-release-as-changelog"`
-	EnableNoLibCreation  bool                              `yaml:"enable-nolib-creation"`
-	EnableTocCreation    bool                              `yaml:"enable-toc-creation"`
-	WowiCreateChangelog  bool                              `yaml:"wowi-create-changelog"`
-	WowiConvertChangelog bool                              `yaml:"wowi-convert-changelog"`
-	WowiArchivePrevious  bool                              `yaml:"wowi-archive-previous"`
+	PackageAs            string                             `yaml:"package-as"`
+	Externals            map[string]*external.ExternalEntry `yaml:"externals"`
+	MoveFolders          map[string]string                  `yaml:"move-folders"`
+	Ignore               []string                           `yaml:"ignore"`
+	RequiredDependencies []string                           `yaml:"required-dependencies"`
+	EmbeddedLibraries    []string                           `yaml:"embedded-libraries"`
+	OptionalDependencies []string                           `yaml:"optional-dependencies"`
+	ToolsUsed            []string                           `yaml:"tools-used"`
+	ManualChangelog      PkgMetaManualChangelog             `yaml:"manual-changelog"`
+	ChangelogTitle       string                             `yaml:"changelog-title"`
+	License              string                             `yaml:"license-output"`
+	ChangelogFromGitHub  bool                               `yaml:"github-release-as-changelog"`
+	EnableNoLibCreation  bool                               `yaml:"enable-nolib-creation"`
+	EnableTocCreation    bool                               `yaml:"enable-toc-creation"`
+	WowiCreateChangelog  bool                               `yaml:"wowi-create-changelog"`
+	WowiConvertChangelog bool                               `yaml:"wowi-convert-changelog"`
+	WowiArchivePrevious  bool                               `yaml:"wowi-archive-previous"`
 }
 
 type PkgMetaFileNotFound struct{}
@@ -103,7 +103,7 @@ func (p *PkgMeta) FetchExternals(packageDir string, forceExternals bool) error {
 		case external.Git:
 			checkoutWg.Add(1)
 			currentEntry.LogGroup.Info("📥 Processing external for %s", currentPath)
-			ext, err = external.NewGitExternal(&currentEntry, forceExternals)
+			ext, err = external.NewGitExternal(currentEntry, forceExternals)
 			if err != nil {
 				currentEntry.LogGroup.Error("Failed to create git external: %v", err)
 				currentEntry.LogGroup.Flush()
@@ -113,7 +113,7 @@ func (p *PkgMeta) FetchExternals(packageDir string, forceExternals bool) error {
 		case external.Svn:
 			checkoutWg.Add(1)
 			currentEntry.LogGroup.Info("📥 Processing external for %s", currentPath)
-			ext, err = external.NewSvnExternal(&currentEntry, forceExternals)
+			ext, err = external.NewSvnExternal(currentEntry, forceExternals)
 			if err != nil {
 				currentEntry.LogGroup.Error("Failed to create svn external: %v", err)
 				currentEntry.LogGroup.Flush()
@@ -133,14 +133,14 @@ func (p *PkgMeta) FetchExternals(packageDir string, forceExternals bool) error {
 		}
 
 		// Pass the captured copy of currentEntry into the goroutine.
-		go func(ext external.Vcs, entry external.ExternalEntry) {
+		go func(ext external.Vcs, entry *external.ExternalEntry) {
 			defer entry.LogGroup.Flush()
 			defer checkoutWg.Done()
 			if err := ext.Checkout(); err != nil {
 				checkoutErrChan <- fmt.Errorf("failed to checkout external: %w", err)
 				return
 			}
-			if err := copyExternal(&entry, packageDir); err != nil {
+			if err := copyExternal(entry, packageDir); err != nil {
 				checkoutErrChan <- fmt.Errorf("failed to copy external: %w", err)
 				return
 			}
