@@ -192,17 +192,6 @@ jobs:
           fi
           echo "release-type=${release_type}" >> $GITHUB_OUTPUT
 
-      - name: Zip the zips
-        run: |
-          cd archived-binaries
-          zip -r ../${{ env.CMD }}.zip .
-
-      - name: Upload the zipped zips
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.CMD }}
-          path: ${{ env.CMD }}.zip
-
   distribute:
     runs-on: ubuntu-latest
     needs: upload-assets
@@ -219,12 +208,49 @@ jobs:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
       WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
       WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-      COMMON_ARGS: "--interface-versions=110000 -i ./wow-build-tools.zip -l ${{ github.ref_name }} -r ${{ needs.upload-assets.outputs.release-type }} -V"
+      COMMON_ARGS: "--interface-versions=110100 -i ./wow-build-tools.zip -l ${{ github.ref_name }} -r ${{ needs.upload-assets.outputs.release-type }} -V"
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.CMD }}
+          name: zip-${{ env.CMD }}_windows_amd64
+
+      - name: Extract the windows binary
+        run: |
+          mkdir -p ./bin
+          unzip -j ${{ env.CMD }}_windows_amd64.zip -d ./bin
+
+      - name: Create a windows zip for upload to distros
+        run: |
+          echo "Generating README.txt"
+          rm -f ./bin/README.txt
+          touch bin/README.txt
+          echo "This is NOT a WoW addon, it is a tool for building and releasing WoW addons." >> bin/README.txt
+          echo "It is a development tool. This particular zip is uploaded to the three popular WoW Addon distribution platforms - Hello folks at ${{ matrix.distro }}!" >> bin/README.txt
+          echo "It contains the Windows AMD64 binary, ${CMD}.exe." >> bin/README.txt
+          echo "" >> bin/README.txt
+          echo "For more information, see the GitHub repository which has releases for other platforms as well as a Wiki." >> bin/README.txt
+          echo "https://github.com/Mctalian/wow-build-tools/tree/beta" >> bin/README.txt
+          echo "" >> bin/README.txt
+          echo "Also, the project is still in BETA, so please report any issues you find." >> bin/README.txt
+          echo "Thank you for reading this and for your interest in wow-build-tools :)" >> bin/README.txt
+          echo "" >> bin/README.txt
+          echo "- McTalian" >> bin/README.txt
+          echo "" >> bin/README.txt
+          echo "Copying LICENSE to bin"
+          cp LICENSE ./bin/LICENSE
+          echo "Generating wow-build-tools.toc (mainly for Wago)"
+          rm -f ./bin/wow-build-tools.toc
+          touch bin/wow-build-tools.toc
+          echo "## Interface: 110100" >> bin/wow-build-tools.toc
+          echo "## Title: wow-build-tools" >> bin/wow-build-tools.toc
+          echo "## Notes: This is NOT an addon, but a tool for building and releasing WoW addons." >> bin/wow-build-tools.toc
+          echo "## Author: McTalian" >> bin/wow-build-tools.toc
+          echo "" >> bin/wow-build-tools.toc
+          echo "Putting it all in a zip"
+          zip -j ./${{ env.CMD }}.zip ./bin/${{ env.CMD }}_windows_amd64.exe ./bin/README.txt ./bin/LICENSE ./bin/wow-build-tools.toc
 
       - name: Download binary
         uses: actions/download-artifact@v4

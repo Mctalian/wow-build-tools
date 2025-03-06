@@ -3,6 +3,7 @@ package external
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,6 +16,47 @@ type GitExternal struct {
 	BaseVcs
 	forceExternals bool
 	metadata       *ExternalEntry
+}
+
+func (gE *GitExternal) lookForCurseSlug() error {
+	e := gE.metadata
+	if e.CurseSlug != "" {
+		return nil
+	}
+
+	repoCachePath := gE.getRepoCachePath()
+
+	// Walk repoCachePath and look for the string @curseforge-project-slug in any file.
+	return filepath.Walk(repoCachePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("failed to walk path: %w", err)
+		}
+		if e.CurseSlug != "" {
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		file, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to open file: %w", err)
+		}
+
+		fileStr := string(file)
+		if strings.Contains(fileStr, "@curseforge-project-slug") {
+			e.LogGroup.Debug("Found @curseforge-project-slug in %s", path)
+			slug := strings.Split(fileStr, "@curseforge-project-slug")[1]
+			slug = strings.TrimSpace(slug)
+			slug = strings.TrimPrefix(slug, ":")
+			slug = strings.TrimSpace(slug)
+			slug = strings.Split(slug, "@")[0]
+			e.CurseSlug = strings.TrimSpace(slug)
+			e.LogGroup.Debug("Updated CurseSlug to %s", e.CurseSlug)
+			return nil
+		}
+
+		return nil
+	})
 }
 
 func (gE *GitExternal) Checkout() error {
@@ -36,6 +78,9 @@ func (gE *GitExternal) Checkout() error {
 			return err
 		} else if !stale {
 			e.LogGroup.Verbose("GIT: Cache is up-to-date for %s", e.DestPath)
+			if err = gE.lookForCurseSlug(); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -174,6 +219,9 @@ func (gE *GitExternal) Checkout() error {
 	}
 
 	e.LogGroup.Debug("GIT: %s checkout successful: %s", e.DestPath, e.Tag)
+	if err = gE.lookForCurseSlug(); err != nil {
+		return err
+	}
 	return nil
 }
 

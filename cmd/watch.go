@@ -248,6 +248,15 @@ var watchCmd = &cobra.Command{
 			return err
 		}
 
+		initialBuildChan := make(chan error)
+		triggerBuild(initialBuildChan)
+		close(initialBuildChan)
+		for err := range initialBuildChan {
+			if err != nil {
+				return err
+			}
+		}
+
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
 			l.Error("Error creating watcher: %v", err)

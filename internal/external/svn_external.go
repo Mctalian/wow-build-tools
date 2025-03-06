@@ -18,6 +18,47 @@ type SvnExternal struct {
 	forceExternals bool
 }
 
+func (s *SvnExternal) lookForCurseSlug() error {
+	e := s.metadata
+	if e.CurseSlug != "" {
+		return nil
+	}
+
+	repoCachePath := s.getRepoCachePath()
+
+	// Walk repoCachePath and look for the string @curseforge-project-slug in any file.
+	return filepath.Walk(repoCachePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("failed to walk path: %w", err)
+		}
+		if e.CurseSlug != "" {
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		file, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to open file: %w", err)
+		}
+
+		fileStr := string(file)
+		if strings.Contains(fileStr, "@curseforge-project-slug") {
+			e.LogGroup.Debug("Found @curseforge-project-slug in %s", path)
+			slug := strings.Split(fileStr, "@curseforge-project-slug")[1]
+			slug = strings.TrimSpace(slug)
+			slug = strings.TrimPrefix(slug, ":")
+			slug = strings.TrimSpace(slug)
+			slug = strings.Split(slug, "@")[0]
+			e.CurseSlug = strings.TrimSpace(slug)
+			e.LogGroup.Debug("Updated CurseSlug to %s", e.CurseSlug)
+			return nil
+		}
+
+		return nil
+	})
+}
+
 // NewSvnExternal creates a new instance of SvnExternal.
 func NewSvnExternal(e *ExternalEntry, forceExternals bool) (*SvnExternal, error) {
 	if e.EType != Svn {
@@ -209,6 +250,9 @@ func (s *SvnExternal) Checkout() error {
 		}
 		if !stale {
 			e.LogGroup.Verbose("SVN: Cache is up-to-date for %s", e.DestPath)
+			if err := s.lookForCurseSlug(); err != nil {
+				return err
+			}
 			return nil
 		}
 
@@ -237,5 +281,8 @@ func (s *SvnExternal) Checkout() error {
 	}
 
 	e.LogGroup.Debug("SVN: %s checkout successful: %s", e.DestPath, e.Tag)
+	if err := s.lookForCurseSlug(); err != nil {
+		return err
+	}
 	return nil
 }

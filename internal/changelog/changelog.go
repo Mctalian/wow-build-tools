@@ -157,7 +157,10 @@ func NewChangelog(repo repo.VcsRepo, pkgMeta *pkg.PkgMeta, title string, pkgDir 
 
 		tag := repo.GetCurrentTag()
 		if tag == "" {
-			return nil, fmt.Errorf("Could not get the current tag, can't get the changelog from the release")
+			tag = repo.GetPreviousVersion()
+			if tag == "" {
+				return nil, fmt.Errorf("Could not get a valid tag, can't get the changelog from the release")
+			}
 		}
 
 		slug := repo.GetGitHubSlug()
