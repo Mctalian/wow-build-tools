@@ -248,7 +248,7 @@ var watchCmd = &cobra.Command{
 			return err
 		}
 
-		initialBuildChan := make(chan error)
+		initialBuildChan := make(chan error, 1)
 		triggerBuild(initialBuildChan)
 		close(initialBuildChan)
 		for err := range initialBuildChan {
