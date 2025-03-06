@@ -186,6 +186,24 @@ func (s *SvnExternal) Checkout() error {
 	repoCachePath := s.getRepoCachePath()
 	e := s.metadata
 
+	newRepoCachePath := repoCachePath
+	if e.Path != "" && !strings.Contains(e.URL, e.Path) {
+		newRepoCachePath = filepath.Join(repoCachePath, e.Path)
+		defer func() { e.RepoCacheDir = newRepoCachePath }()
+		if e.EType == Svn {
+			e.LogGroup.Warn("%s: Path %s not found in URL %s - having a specific URL is generally more performant for svn checkouts.", e.DestPath, e.Path, e.URL)
+		}
+		if strings.Contains(e.URL, "/trunk") {
+			e.LogGroup.Warn(`Example:
+	# .pkgmeta	
+	externals:
+	  %s: %s/%s
+`,
+				e.DestPath, e.URL, e.Path,
+			)
+		}
+	}
+
 	// Determine the proper checkout URL based on the type.
 	var checkoutURL string
 	switch e.CheckoutType {
@@ -202,11 +220,13 @@ func (s *SvnExternal) Checkout() error {
 			}
 			e.URL = tagMeta.TagUrl
 			e.Tag = tagMeta.Tag
-		}
-		if e.Path == "" {
-			checkoutURL = fmt.Sprintf("%s/%s", e.URL, e.Tag)
+			if e.Path == "" {
+				checkoutURL = fmt.Sprintf("%s/%s", e.URL, e.Tag)
+			} else {
+				checkoutURL = fmt.Sprintf("%s/%s/%s", e.URL, e.Tag, e.Path)
+			}
 		} else {
-			checkoutURL = fmt.Sprintf("%s/%s/%s", e.URL, e.Tag, e.Path)
+			checkoutURL = strings.Replace(e.URL, "/trunk", "/tags/"+e.Tag, 1)
 		}
 	case "commit":
 		checkoutURL = e.URL
@@ -234,10 +254,28 @@ func (s *SvnExternal) Checkout() error {
 			args = append(args, "-r", e.Tag)
 		}
 		args = append(args, checkoutURL, repoCachePath)
-		cmd := exec.Command("svn", args...)
-		if output, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to checkout repository %s: %w, output: %s", e.DestPath, err, string(output))
+		// Add retry logic to handle transient network issues, specifically if E175002 is in the output string.
+		for i := 0; i < 5; i++ {
+			cmd := exec.Command("svn", args...)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				outputStr := string(output)
+				if i < 4 && strings.Contains(outputStr, "E175002") {
+					continue
+				}
+				if i < 4 && strings.Contains(outputStr, "E155000") {
+					// If the checkout fails due to a non-empty directory, remove the directory and retry.
+					e.LogGroup.Warn("SVN: Non-empty directory detected, removing %s and retrying...", repoCachePath)
+					err = os.RemoveAll(repoCachePath)
+					if err != nil {
+						return fmt.Errorf("failed to remove existing cache dir at %s: %w", repoCachePath, err)
+					}
+					continue
+				}
+				return fmt.Errorf("failed to checkout repository %s: %w, output: %s", e.DestPath, err, outputStr)
+			}
 		}
+
 		// Write the marker after a successful checkout.
 		if err := helper.Write(lastUpdatedPath); err != nil {
 			return err

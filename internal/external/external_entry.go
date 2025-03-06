@@ -132,6 +132,8 @@ func (e *ExternalEntry) UnmarshalYAML(value *yaml.Node) error {
 
 	e.RepoCacheDir = e.GetRepoCachePath()
 
+	logger.Debug("RepoCacheDir %s", e.RepoCacheDir)
+
 	return nil
 }
 
